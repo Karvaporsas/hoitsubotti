@@ -86,7 +86,32 @@ module.exports = {
     },
     getRecoveredCases(dynamoDb) {
         return new Promise((resolve, reject) => {
-            resolve('NOT READY');
+            var params = {
+                TableName: RECOVERED_TABLE,
+                ProjectionExpression: '#id, #d, #hcd, #insDate',
+                ExpressionAttributeNames: {
+                    '#id': 'id',
+                    '#d': 'date',
+                    '#hcd': 'healthCareDistrict',
+                    '#insDate': 'insertDate'
+                }
+            };
+
+            utils.performScan(dynamoDb, params).then((cases) => {
+                if (!cases || !cases.length) {
+                    reject('No cases found');
+                } else {
+                    for (const coronaCase of cases) {
+                        coronaCase.date = moment(coronaCase.date);
+                        coronaCase.insertDate = moment(coronaCase.insertDate);
+                    }
+                    resolve(cases);
+                }
+            }).catch((e) => {
+                console.error('error getting confirmed cases');
+                console.log(e);
+                reject(e);
+            });
         });
     }
 };

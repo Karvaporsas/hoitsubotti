@@ -6,23 +6,44 @@ const database = require('./../database');
 const helper = require('./../helper');
 const moment = require('moment');
 const _ = require('underscore');
+const _treshold = moment().add(-1, 'day');
 
-function _capitalizeFirstWord(s) {
-    var result = '';
-    s = s.toString();
-
-    if (!s || !s.length) {
-        return result;
+function _isAfterTreshold(c) {
+    if (c.hasOwnProperty('acqDate')) {
+        return c.acqDate.isAfter(_treshold);
+    }
+    if (c.hasOwnProperty('date')) {
+        return c.date.isAfter(_treshold);
     }
 
-    result = s.charAt(0);
-    result = result.toUpperCase();
+    return false;
+}
 
-    if (s.length > 1) {
-        result += s.substr(1);
+function _getCaseDataTableString(cases, cols) {
+    var caseData = [];
+
+    var countyGroups = _.groupBy(cases, function (c) {
+        return c.healthCareDistrict;
+    });
+
+    for (const countyName in countyGroups) {
+        if (countyGroups.hasOwnProperty(countyName)) {
+            const g = countyGroups[countyName];
+            const newCases = _.filter(g, _isAfterTreshold);
+
+            caseData.push({
+                healthCareDistrict: countyName,
+                amt: g.length,
+                newCases: newCases.length
+            });
+        }
     }
 
-    return result;
+    caseData.sort(function(a, b) {
+        return b.amt - a.amt;
+    });
+
+    return helper.formatTableDataString(caseData, cols) || '';
 }
 
 module.exports = {
@@ -35,59 +56,38 @@ module.exports = {
         initialPromises.push(database.getRecoveredCases());
 
         Promise.all(initialPromises).then((allInitResults) => {
-            var operation = allInitResults[0];
-            var lastUpdate = moment(`${operation.yr}-${operation.mon}-${operation.day} ${operation.hour}:${operation.minute}`, 'YYYY-MM-DD HH:mm');
-            lastUpdate.add(2, 'hours');
-            var lastUpdateString = lastUpdate.format('DD.MM.YYYY HH:mm');
-            var confirmedCases = allInitResults[1];
-
-            var countyGroups = _.groupBy(confirmedCases, function (c) {
-                return c.healthCareDistrict;
-            });
-
-            var treshold = moment().add(-1, 'day');
-            function isAfterTreshold(c) {
-                return c.acqDate.isAfter(treshold);
-            }
-            var allNew = _.filter(confirmedCases, isAfterTreshold);
-            var allPercent = (allNew.length / (confirmedCases.length || 1) * 100).toFixed(0);
-
-            var caseData = [];
-
-            for (const countyName in countyGroups) {
-                if (countyGroups.hasOwnProperty(countyName)) {
-                    const g = countyGroups[countyName];
-                    const newCases = _.filter(g, isAfterTreshold);
-                    var changepct = (newCases.length / (g.length || 1) * 100).toFixed(0);
-                    caseData.push({
-                        healthCareDistrict: countyName,
-                        amt: g.length,
-                        newCases: newCases.length,
-                        changePct: changepct
-                    });
-                }
-            }
-
-            caseData.sort(function(a, b) {
-                return b.amt - a.amt;
-            });
-
-            var cols = [
+            const confirmedCols = [
                 {colProperty: 'healthCareDistrict', headerName: 'Alue'},
-                {colProperty: 'amt', headerName: `Tapauksia`},
+                {colProperty: 'amt', headerName: `Tartuntoja`},
                 {colProperty: 'newCases', headerName: `24h`}
-                //{colProperty: 'changePct', headerName: `%`}
+            ];
+            const recoveredCols = [
+                {colProperty: 'healthCareDistrict', headerName: 'Alue'},
+                {colProperty: 'amt', headerName: `Parantuneita`},
+                {colProperty: 'newCases', headerName: `24h`}
             ];
 
-            var ingress = `Tartuntoja ${confirmedCases.length}, joista uusia ${allNew.length}.\nKasvua ${allPercent}% vuorokaudessa.\nPäivitetty ${lastUpdateString}`;
-            var resultMsg = helper.formatListMessage(`Tilastot`, ingress, caseData, cols);
+            var operation = allInitResults[0];
+            var confirmedCases = allInitResults[1];
+            var recoveredCases = allInitResults[3];
+            var lastUpdateString = moment(`${operation.yr}-${operation.mon}-${operation.day} ${operation.hour}:${operation.minute}`, 'YYYY-MM-DD HH:mm')
+                .add(2, 'hours')
+                .format('DD.MM.YYYY HH:mm');
+            var confirmedNew = _.filter(confirmedCases, _isAfterTreshold);
+            var recoveredNew = _.filter(recoveredCases, _isAfterTreshold);
+            var confirmedPercent = (confirmedNew.length / (confirmedCases.length || 1) * 100).toFixed(0);
+            var ingress = `Tartuntoja ${confirmedCases.length}, joista uusia ${confirmedNew.length}.\nKasvua ${confirmedPercent}% vuorokaudessa.\n\nParantuneita ${recoveredCases.length}, joista uusia ${recoveredNew.length}.`;
 
-            var response = {status: 1,
+            var resultMsg = helper.formatListMessage(`Tilastot (${lastUpdateString})`, ingress, [], []);
+
+            var confirmedDataString = _getCaseDataTableString(confirmedCases, confirmedCols);
+            var recoveredDataString = _getCaseDataTableString(recoveredCases, recoveredCols);
+
+            resolve({
+                status: 1,
                 type: 'text',
-                message: resultMsg
-            };
-
-            resolve(response);
+                message: `${resultMsg}${confirmedDataString}${recoveredDataString}`
+            });
         }).catch((e) => {
             reject(e);
         });
