@@ -1,0 +1,2 @@
+# hoitsubotti
+Koronatilastoja telegramiin
