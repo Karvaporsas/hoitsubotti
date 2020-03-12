@@ -8,6 +8,14 @@ const moment = require('moment');
 const _ = require('underscore');
 const _treshold = moment().add(-1, 'day');
 
+function _parseCountyName(countyName) {
+    if (countyName == 'Pohjois-Pohjanmaa') {
+        return 'P-Pohjanmaa';
+    }
+
+    return countyName;
+}
+
 function _isAfterTreshold(c) {
     if (c.hasOwnProperty('acqDate')) {
         return c.acqDate.isAfter(_treshold);
@@ -32,7 +40,7 @@ function _getCaseDataTableString(cases, cols) {
             const newCases = _.filter(g, _isAfterTreshold);
 
             caseData.push({
-                healthCareDistrict: countyName,
+                healthCareDistrict: _parseCountyName(countyName),
                 amt: g.length,
                 newCases: newCases.length
             });
@@ -58,12 +66,12 @@ module.exports = {
         Promise.all(initialPromises).then((allInitResults) => {
             const confirmedCols = [
                 {colProperty: 'healthCareDistrict', headerName: 'Alue'},
-                {colProperty: 'amt', headerName: `Tartuntoja`},
+                {colProperty: 'amt', headerName: `Tartunnat`},
                 {colProperty: 'newCases', headerName: `24h`}
             ];
             const recoveredCols = [
                 {colProperty: 'healthCareDistrict', headerName: 'Alue'},
-                {colProperty: 'amt', headerName: `Parantuneita`},
+                {colProperty: 'amt', headerName: `Parantuneet`},
                 {colProperty: 'newCases', headerName: `24h`}
             ];
 
@@ -76,10 +84,9 @@ module.exports = {
             var confirmedNew = _.filter(confirmedCases, _isAfterTreshold);
             var recoveredNew = _.filter(recoveredCases, _isAfterTreshold);
             var confirmedPercent = (confirmedNew.length / (confirmedCases.length || 1) * 100).toFixed(0);
-            var ingress = `Tartuntoja ${confirmedCases.length}, joista uusia ${confirmedNew.length}.\nKasvua ${confirmedPercent}% vuorokaudessa.\n\nParantuneita ${recoveredCases.length}, joista uusia ${recoveredNew.length}.`;
+            var ingress = `Tartuntoja ${confirmedCases.length}, joista 24h aikana ${confirmedNew.length}.\nKasvua ${confirmedPercent}% vuorokaudessa.\n\nParantuneita ${recoveredCases.length}, joista 24h aikana ${recoveredNew.length}.`;
 
             var resultMsg = helper.formatListMessage(`Tilastot (${lastUpdateString})`, ingress, [], []);
-
             var confirmedDataString = _getCaseDataTableString(confirmedCases, confirmedCols);
             var recoveredDataString = _getCaseDataTableString(recoveredCases, recoveredCols);
 
