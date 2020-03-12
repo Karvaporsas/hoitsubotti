@@ -1,0 +1,25 @@
+{
+  "name": "hoitsubotti",
+  "version": "1.0.0",
+  "description": "Hoitsu kertoo terveysdataa koronasta",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "clean": "del hoitsubotcore.zip",
+    "build": "7z a hoitsubotcore.zip databaseFunctions handlers *.js",
+    "deploy": "aws lambda update-function-code --function-name Hoitsubotti --zip-file fileb://hoitsubotcore.zip --publish",
+    "chaindeploy": "npm run clean && npm run build && npm run deploy"
+  },
+  "keywords": [
+    "hoitsu"
+  ],
+  "author": "Touko Hjelt",
+  "license": "MIT",
+  "dependencies": {
+    "aws-sdk": "^2.601.0",
+    "moment": "^2.24.0",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.5",
+    "underscore": "^1.9.2"
+  }
+}
