@@ -64,7 +64,7 @@ module.exports = {
 
             utils.performScan(dynamoDb, params).then((cases) => {
                 if (!cases || !cases.length) {
-                    reject('No cases found');
+                    resolve([]);
                 } else {
                     for (const coronaCase of cases) {
                         coronaCase.acqDate = moment(coronaCase.acqDate);
@@ -81,7 +81,32 @@ module.exports = {
     },
     getDeadCases(dynamoDb) {
         return new Promise((resolve, reject) => {
-            resolve('NOT READY');
+            var params = {
+                TableName: DEATHS_TABLE,
+                ProjectionExpression: '#id, #d, #hcd, #insDate',
+                ExpressionAttributeNames: {
+                    '#id': 'id',
+                    '#d': 'date',
+                    '#hcd': 'healthCareDistrict',
+                    '#insDate': 'insertDate'
+                }
+            };
+
+            utils.performScan(dynamoDb, params).then((cases) => {
+                if (!cases || !cases.length) {
+                    resolve([]);
+                } else {
+                    for (const coronaCase of cases) {
+                        coronaCase.date = moment(coronaCase.date);
+                        coronaCase.insertDate = moment(coronaCase.insertDate);
+                    }
+                    resolve(cases);
+                }
+            }).catch((e) => {
+                console.error('error getting confirmed cases');
+                console.log(e);
+                reject(e);
+            });
         });
     },
     getRecoveredCases(dynamoDb) {
@@ -99,7 +124,7 @@ module.exports = {
 
             utils.performScan(dynamoDb, params).then((cases) => {
                 if (!cases || !cases.length) {
-                    reject('No cases found');
+                    resolve([]);
                 } else {
                     for (const coronaCase of cases) {
                         coronaCase.date = moment(coronaCase.date);

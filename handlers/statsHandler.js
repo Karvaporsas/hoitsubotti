@@ -74,9 +74,15 @@ module.exports = {
                 {colProperty: 'amt', headerName: `Parantuneet`},
                 {colProperty: 'newCases', headerName: `24h`}
             ];
+            const deadCols = [
+                {colProperty: 'healthCareDistrict', headerName: 'Alue'},
+                {colProperty: 'amt', headerName: `Kuolleet`},
+                {colProperty: 'newCases', headerName: `24h`}
+            ];
 
             var operation = allInitResults[0];
             var confirmedCases = allInitResults[1];
+            var deadCases = allInitResults[2];
             var recoveredCases = allInitResults[3];
             var lastUpdateString = moment(`${operation.yr}-${operation.mon}-${operation.day} ${operation.hour}:${operation.minute}`, 'YYYY-MM-DD HH:mm')
                 .add(2, 'hours')
@@ -89,11 +95,18 @@ module.exports = {
             var resultMsg = helper.formatListMessage(`Tilastot (${lastUpdateString})`, ingress, [], []);
             var confirmedDataString = _getCaseDataTableString(confirmedCases, confirmedCols);
             var recoveredDataString = _getCaseDataTableString(recoveredCases, recoveredCols);
+            var deadDataString = '';
+
+            if (deadCases.length) {
+                var deadNew = _.filter(deadCases, _isAfterTreshold);
+                ingress += `\n\nKuolleita ${deadCases.length}, joista 24h aikana ${deadNew.length}.`;
+                deadDataString = _getCaseDataTableString(deadCases, deadCols);
+            }
 
             resolve({
                 status: 1,
                 type: 'text',
-                message: `${resultMsg}${confirmedDataString}${recoveredDataString}`
+                message: `${resultMsg}${confirmedDataString}${recoveredDataString}${deadDataString}`
             });
         }).catch((e) => {
             reject(e);
