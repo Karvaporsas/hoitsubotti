@@ -60,7 +60,7 @@ function _getCaseDataTableString(cases, cols) {
     return helper.formatTableDataString(caseData, cols) || '';
 }
 
-function _processData(allInitResults) {
+function _processData(operation, confirmedCases, deadCases, recoveredCases) {
     const confirmedCols = [
         {colProperty: 'healthCareDistrict', headerName: 'Alue'},
         {colProperty: 'amt', headerName: `Tartunnat`},
@@ -77,13 +77,7 @@ function _processData(allInitResults) {
         {colProperty: 'newCases', headerName: `24h`}
     ];
 
-    var operation = allInitResults[0];
-    var confirmedCases = allInitResults[1];
-    var deadCases = allInitResults[2];
-    var recoveredCases = allInitResults[3];
-    var lastUpdateString = _getLatestOperationTime(operation)
-        .add(2, 'hours')
-        .format('DD.MM.YYYY HH:mm');
+    var lastUpdateString = _getLatestOperationTime(operation).add(2, 'hours').format('DD.MM.YYYY HH:mm');
     var confirmedNew = _.filter(confirmedCases, _isAfterTreshold);
     var recoveredNew = _.filter(recoveredCases, _isAfterTreshold);
     var confirmedPercent = (confirmedNew.length / (confirmedCases.length || 1) * 100).toFixed(0);
@@ -114,10 +108,11 @@ module.exports = {
         } else {
             var initialPromises = [];
 
-            initialPromises.push(database.getLatestOperation('coronaloader'));
+            initialPromises.push(database.getLatestOperation('coronaautosender'));
             initialPromises.push(database.getConfirmedCases());
             initialPromises.push(database.getDeadCases());
             initialPromises.push(database.getRecoveredCases());
+            initialPromises.push(database.getLatestOperation('coronaloader'));
 
             Promise.all(initialPromises).then((results) => {
                 var operation = results[0];
@@ -129,7 +124,7 @@ module.exports = {
                     resolve({status: 0, message: 'No new cases'});
                 } else {
                     database.updateOperation(operation).then(() => {
-                        var resultMessage = _processData(results);
+                        var resultMessage = _processData(results[4], results[1], results[2], results[3]);
                         var result = {
                             status: 1,
                             hasMultipleMessages: true,
@@ -154,13 +149,13 @@ module.exports = {
     getStatistics(resolve, reject) {
         var initialPromises = [];
 
-        initialPromises.push(database.getLatestOperation('coronaautosender'));
+        initialPromises.push(database.getLatestOperation('coronaloader'));
         initialPromises.push(database.getConfirmedCases());
         initialPromises.push(database.getDeadCases());
         initialPromises.push(database.getRecoveredCases());
 
         Promise.all(initialPromises).then((allInitResults) => {
-            var result = _processData(allInitResults);
+            var result = _processData(allInitResults[0], allInitResults[1], allInitResults[2], allInitResults[3]);
             resolve(result);
         }).catch((e) => {
             reject(e);
