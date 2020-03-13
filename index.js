@@ -27,11 +27,22 @@ exports.handler = (event, context) => {
 
     commands.processCommand(event, chatId).then((result) => {
         if (DEBUG_MODE) {
+            console.log('Done, result is: ');
             console.log(result);
         }
 
         if(result.status === 1) {
-            telegramMessageSender.sendMessageToTelegram(chatId, result).then(() => {
+            var messageSendingPromises = [];
+
+            if (result.hasMultipleMessages) {
+                for (const cid of result.chatIds) {
+                    messageSendingPromises.push(telegramMessageSender.sendMessageToTelegram(cid, result.message));
+                }
+            } else {
+                messageSendingPromises.push(telegramMessageSender.sendMessageToTelegram(chatId, result));
+            }
+
+            Promise.all(messageSendingPromises).then(() => {
                 context.succeed('Message sent');
             }).catch((e) => {
                 console.error("Failed to send message");

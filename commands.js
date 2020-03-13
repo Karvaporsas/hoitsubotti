@@ -34,16 +34,23 @@ module.exports = {
      */
     processCommand(event, chatId) {
         return new Promise((resolve, reject) => {
-            if (!chatId) {
-                console.error("No chat id!");
-                reject();
-            } else {
-                const messageText = helper.getEventMessageText(event);
-                const command = helper.parseCommand(messageText);
+            const messageText = helper.getEventMessageText(event);
+            const command = helper.parseCommand(messageText);
 
+            if (!chatId) {
+                switch (command.name) {
+                    case 'notifynewcases':
+                        statsHandler.checkNewCases(resolve, reject);
+                        break;
+                    default:
+                        console.error("No chat id!");
+                        reject();
+                        break;
+                }
+            } else {
                 switch (command.name) {
                     case 'stats':
-                        statsHandler.getStatistics(chatId, resolve, reject);
+                        statsHandler.getStatistics(resolve, reject);
                         break;
                     default:
                         resolve({status: 0, message: 'Not a command'});
