@@ -120,26 +120,31 @@ module.exports = {
             initialPromises.push(database.getRecoveredCases());
 
             Promise.all(initialPromises).then((results) => {
-                var operationTreshold = _getLatestOperationTime(results[0]).subtract(1, 'minute');
+                var operation = results[0];
+                var operationTreshold = _getLatestOperationTime(operation).subtract(1, 'minute');
                 var allCases = results[1].concat(results[2]).concat(results[3]);
                 var allNewCases = _.filter(allCases, function (c) { return c.insertDate.isAfter(operationTreshold); });
 
                 if (!allNewCases.length) {
                     resolve({status: 0, message: 'No new cases'});
                 } else {
-                    var resultMessage = _processData(results);
-                    var result = {
-                        status: 1,
-                        hasMultipleMessages: true,
-                        message: resultMessage,
-                        chatIds: []
-                    };
+                    database.updateOperation(operation).then(() => {
+                        var resultMessage = _processData(results);
+                        var result = {
+                            status: 1,
+                            hasMultipleMessages: true,
+                            message: resultMessage,
+                            chatIds: []
+                        };
 
-                    for (const chatId of _notifiedChats) {
-                        result.chatIds.push(parseInt(chatId));
-                    }
+                        for (const chatId of _notifiedChats) {
+                            result.chatIds.push(parseInt(chatId));
+                        }
 
-                    resolve(result);
+                        resolve(result);
+                    }).catch((e) => {
+                        reject(e);
+                    });
                 }
             }).catch((e) => {
                 reject(e);
@@ -149,7 +154,7 @@ module.exports = {
     getStatistics(resolve, reject) {
         var initialPromises = [];
 
-        initialPromises.push(database.getLatestOperation('coronaloader'));
+        initialPromises.push(database.getLatestOperation('coronaautosender'));
         initialPromises.push(database.getConfirmedCases());
         initialPromises.push(database.getDeadCases());
         initialPromises.push(database.getRecoveredCases());

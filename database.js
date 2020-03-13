@@ -4,6 +4,7 @@
 
 const AWS = require('aws-sdk');
 const caseFunctions = require('./databaseFunctions/caseFunctions');
+const operationFunctions = require('./databaseFunctions/operationFunctions');
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
 
 module.exports = {
@@ -18,5 +19,8 @@ module.exports = {
     },
     getRecoveredCases() {
         return caseFunctions.getRecoveredCases(dynamoDb);
+    },
+    updateOperation(operation) {
+        return operationFunctions.updateOperation(dynamoDb, operation);
     }
 };
