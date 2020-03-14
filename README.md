@@ -5,9 +5,9 @@ Hoitsubotti tarjoilee koronatilastoja telegramiin. Botin handler on @Hoitsubot, 
 
 Hoitsu ymmärtää toistaseksi seuraavia komentoja
 
-**stats** - Suomen koronatilastot
-**startupdates** - Vastaanota automaattisia viestejä uusista tartunnoista
-**stopupdates** - Lopeta automaattisten viestien vastaanotto
++ **stats** - Suomen koronatilastot
++ **startupdates** - Vastaanota automaattisia viestejä uusista tartunnoista
++ **stopupdates** - Lopeta automaattisten viestien vastaanotto
 
 ## Tietoja
 
