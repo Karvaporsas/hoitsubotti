@@ -2,7 +2,7 @@
 /*jshint esversion: 6 */
 'use strict';
 
-const OPERATIONS_TABLE = process.env.TABLE_OPERATIONS;
+const OPERATIONS_TABLE = process.env.OPERATIONS_TABLE;
 
 module.exports = {
     updateOperation(dynamoDb, operation) {
