@@ -10,11 +10,23 @@ const _botNotificationName = 'hoitsubotti';
 
 var _treshold = moment().add(-1, 'day');
 
+/**
+ * Gets last operation run time
+ * @param {operation} operation from where to extract time
+ *
+ * @returns moment of last time this operation was run successfully
+ */
 function _getLatestOperationTime(operation) {
     const mon = parseInt(operation.mon) + 1;
     return moment(`${operation.yr}-${mon}-${operation.day} ${operation.hour}:${operation.minute}:00`, 'YYYY-MM-DD HH:mm:ss');
 }
 
+/**
+ * Parses county names so that they are not too long (mobile friendly "tables" on client)
+ * @param {string} countyName to parse
+ *
+ * @returns short enough county string
+ */
 function _parseCountyName(countyName) {
     if (countyName == 'Pohjois-Pohjanmaa') {
         return 'P-Pohjanmaa';
@@ -23,18 +35,14 @@ function _parseCountyName(countyName) {
     return countyName;
 }
 
-function _isAfterTreshold(c) {
-    if (c.hasOwnProperty('acqDate')) {
-        return c.acqDate.isAfter(_treshold);
-    }
-    if (c.hasOwnProperty('date')) {
-        return c.date.isAfter(_treshold);
-    }
-
-    return false;
-}
-
-function _getCaseDataTableString(cases, cols) {
+/**
+ * Formats message string from input
+ * @param {Array} cases of corona
+ * @param {Array} cols to present
+ *
+ * @returns message string
+ */
+function _getCaseDataTableString(cases, cols, tresholdParam, treshold, hideIfNoNewCases = false) {
     var caseData = [];
 
     var countyGroups = _.groupBy(cases, function (c) {
@@ -44,13 +52,14 @@ function _getCaseDataTableString(cases, cols) {
     for (const countyName in countyGroups) {
         if (countyGroups.hasOwnProperty(countyName)) {
             const g = countyGroups[countyName];
-            const newCases = _.filter(g, _isAfterTreshold);
-
-            caseData.push({
-                healthCareDistrict: _parseCountyName(countyName),
-                amt: g.length,
-                newCases: newCases.length
-            });
+            const newCases = _.filter(g, function(c) { return c[tresholdParam].isAfter(treshold); }); //jshint ignore:line
+            if (!hideIfNoNewCases || (hideIfNoNewCases && newCases.length)) {
+                caseData.push({
+                    healthCareDistrict: _parseCountyName(countyName),
+                    amt: g.length,
+                    newCases: newCases.length
+                });
+            }
         }
     }
 
@@ -61,45 +70,46 @@ function _getCaseDataTableString(cases, cols) {
     return helper.formatTableDataString(caseData, cols) || '';
 }
 
-function _processData(operation, confirmedCases, deadCases, recoveredCases, customTreshold) {
+/**
+ * Creates message object with old and fresh (24h) cases that can be sent to telegram chats and channels
+ *
+ * @param {operation} operation of last successfull input operation from source data
+ * @param {Array} confirmedCases of corona
+ * @param {Array} deadCases from corona
+ * @param {Array} recoveredCases of corona
+ *
+ * @returns message object to send to telegram
+ */
+function _createCaseData(operation, confirmedCases, deadCases, recoveredCases) {
     const confirmedCols = [
         {colProperty: 'healthCareDistrict', headerName: 'Alue'},
         {colProperty: 'amt', headerName: `Tartunnat`},
-        {colProperty: 'newCases', headerName: customTreshold ? 'Uusia' : '24h'}
+        {colProperty: 'newCases', headerName: '24h'}
     ];
     const recoveredCols = [
         {colProperty: 'healthCareDistrict', headerName: 'Alue'},
         {colProperty: 'amt', headerName: `Parantuneet`},
-        {colProperty: 'newCases', headerName: customTreshold ? 'Uusia' : '24h'}
+        {colProperty: 'newCases', headerName: '24h'}
     ];
     const deadCols = [
         {colProperty: 'healthCareDistrict', headerName: 'Alue'},
         {colProperty: 'amt', headerName: `Kuolleet`},
-        {colProperty: 'newCases', headerName: customTreshold ? 'Uusia' : '24h'}
+        {colProperty: 'newCases', headerName: '24h'}
     ];
 
-    if (customTreshold) {
-        _treshold = customTreshold;
-    }
-
     var lastUpdateString = _getLatestOperationTime(operation).add(2, 'hours').format('DD.MM.YYYY HH:mm');
-    var confirmedNew = _.filter(confirmedCases, _isAfterTreshold);
-    var recoveredNew = _.filter(recoveredCases, _isAfterTreshold);
-    var deadNew = _.filter(deadCases, _isAfterTreshold);
+    var confirmedNew = _.filter(confirmedCases, function (c) { return c.acqDate.isAfter(_treshold); });
+    var recoveredNew = _.filter(recoveredCases, function (c) { return c.date.isAfter(_treshold); });
+    var deadNew = _.filter(deadCases, function (c) { return c.date.isAfter(_treshold); });
     var confirmedPercent = (confirmedNew.length / (confirmedCases.length || 1) * 100).toFixed(0);
     var ingress = `Tartuntoja ${confirmedCases.length}, joista 24h aikana ${confirmedNew.length}.\nKasvua ${confirmedPercent}% vuorokaudessa.\n\nParantuneita ${recoveredCases.length}, joista 24h aikana ${recoveredNew.length}.`;
+
     if (deadCases.length) ingress += `\n\nKuolleita ${deadCases.length}, joista 24h aikana ${deadNew.length}.`;
 
-
-    if (customTreshold) {
-        ingress = `Tartuntoja ${confirmedCases.length}, joista uusia ${confirmedNew.length}.\n\nParantuneita ${recoveredCases.length}, joista uusia ${recoveredNew.length}.`;
-        if (deadCases.length) ingress += `\n\nKuolleita ${deadCases.length}, joista uusia ${deadNew.length}.`;
-    }
-
     var resultMsg = helper.formatListMessage(`Tilastot (${lastUpdateString})`, ingress, [], []);
-    var confirmedDataString = _getCaseDataTableString(confirmedCases, confirmedCols);
-    var recoveredDataString = _getCaseDataTableString(recoveredCases, recoveredCols);
-    var deadDataString = deadCases.length ? _getCaseDataTableString(deadCases, deadCols) : '';
+    var confirmedDataString = _getCaseDataTableString(confirmedCases, confirmedCols, 'acqDate', _treshold);
+    var recoveredDataString = _getCaseDataTableString(recoveredCases, recoveredCols, 'date', _treshold);
+    var deadDataString = deadCases.length ? _getCaseDataTableString(deadCases, deadCols, 'date', _treshold) : '';
 
     return {
         status: 1,
@@ -109,10 +119,16 @@ function _processData(operation, confirmedCases, deadCases, recoveredCases, cust
 }
 
 module.exports = {
+    /**
+     * Check if there are new cases and creates message based on them
+     *
+     * @param {function} resolve contains message object for further use
+     * @param {function} reject contains error info
+     */
     checkNewCases(resolve, reject) {
         database.getNotificators(_botNotificationName).then((chatsToNotify) => {
             if (!chatsToNotify.length) {
-                reject('No chats to notify. Set NOTIFIED_CHATS');
+                reject('No chats to notify.');
             } else {
                 var initialPromises = [];
 
@@ -120,23 +136,44 @@ module.exports = {
                 initialPromises.push(database.getConfirmedCases());
                 initialPromises.push(database.getDeadCases());
                 initialPromises.push(database.getRecoveredCases());
-                initialPromises.push(database.getLatestOperation('coronaloader'));
 
                 Promise.all(initialPromises).then((results) => {
+                    const cols = [
+                        {colProperty: 'healthCareDistrict', headerName: 'Alue'},
+                        {colProperty: 'newCases', headerName: 'Uusia'}
+                    ];
+
                     var operation = results[0];
                     var operationTreshold = _getLatestOperationTime(operation).subtract(1, 'minute');
-                    var allCases = results[1].concat(results[2]).concat(results[3]);
-                    var allNewCases = _.filter(allCases, function (c) { return c.insertDate.isAfter(operationTreshold); });
+                    const hasNewConfirmed = _.filter(results[1], function(c) { return c.insertDate.isAfter(operationTreshold); }).length > 0;
+                    const hasNewDeaths = _.filter(results[2], function(c) { return c.insertDate.isAfter(operationTreshold); }).length > 0;
+                    const hasNewRecovered = _.filter(results[3], function(c) { return c.insertDate.isAfter(operationTreshold); }).length > 0;
 
-                    if (!allNewCases.length) {
+                    if (!hasNewConfirmed && !hasNewDeaths && !hasNewRecovered) {
                         resolve({status: 0, message: 'No new cases'});
                     } else {
+                        const confirmedTableString = _getCaseDataTableString(results[1], cols, 'insertDate', operationTreshold, true);
+                        const deathsTableString = _getCaseDataTableString(results[2], cols, 'insertDate', operationTreshold, true);
+                        const recoveredTableString = _getCaseDataTableString(results[3], cols, 'insertDate', operationTreshold, true);
+
                         database.updateOperation(operation).then(() => {
-                            var resultMessage = _processData(results[4], results[1], results[2], results[3], operationTreshold);
+                            var newSinceString = operationTreshold.format('DD.MM.YYYY HH:mm');
+                            var ingress = `Uudet tapaukset ${newSinceString} lähtien.`;
+                            var header = helper.formatListMessage(`Uudet tapaukset`, ingress, [], []);
+                            var resultMessage = `${header}`;
+
+                            if (hasNewConfirmed) resultMessage += `\nTartunnat${confirmedTableString}`;
+                            if (hasNewRecovered) resultMessage += `\nParantuneet${recoveredTableString}`;
+                            if (hasNewDeaths) resultMessage += `\nKuolleet${deathsTableString}`;
+
                             var result = {
                                 status: 1,
                                 hasMultipleMessages: true,
-                                message: resultMessage,
+                                message: {
+                                    status: 1,
+                                    type: 'text',
+                                    message: resultMessage
+                                },
                                 chatIds: []
                             };
 
@@ -158,6 +195,11 @@ module.exports = {
             reject(e);
         });
     },
+    /**
+     * Generates statistics based on given inputs about decease situation
+     * @param {function} resolve contains message object for further use
+     * @param {function} reject contains error info
+     */
     getStatistics(resolve, reject) {
         var initialPromises = [];
 
@@ -167,8 +209,7 @@ module.exports = {
         initialPromises.push(database.getRecoveredCases());
 
         Promise.all(initialPromises).then((allInitResults) => {
-            var result = _processData(allInitResults[0], allInitResults[1], allInitResults[2], allInitResults[3]);
-            resolve(result);
+            resolve(_createCaseData(allInitResults[0], allInitResults[1], allInitResults[2], allInitResults[3]));
         }).catch((e) => {
             reject(e);
         });

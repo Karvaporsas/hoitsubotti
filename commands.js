@@ -55,8 +55,6 @@ module.exports = {
                 }
             } else {
                 var chatTitle = helper.getEventChatTitle(event);
-                console.log(event.body.message);
-                console.log(chatTitle);
                 switch (command.name) {
                     case 'stats':
                         statsHandler.getStatistics(resolve, reject);

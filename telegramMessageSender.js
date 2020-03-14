@@ -39,7 +39,9 @@ module.exports = {
                 break;
             default:
                 console.error(`Tried to send message with unknown type ${messageObject.type}`);
-                return;
+                return new Promise((resolve, reject) => {
+                    reject('Insufficent message data');
+                });
         }
 
         if(messageObject.keyboard) {
@@ -54,7 +56,7 @@ module.exports = {
             uri: `${url}/${method}`,
             form: form
         };
-        console.log("Sending message");
+
         if (DEBUG_MODE) {
             console.log(message);
         }
