@@ -6,8 +6,9 @@ const database = require('./../database');
 const helper = require('./../helper');
 const moment = require('moment');
 const _ = require('underscore');
-const _treshold = moment().add(-1, 'day');
 const _botNotificationName = 'hoitsubotti';
+
+var _treshold = moment().add(-1, 'day');
 
 function _getLatestOperationTime(operation) {
     const mon = parseInt(operation.mon) + 1;
@@ -60,39 +61,45 @@ function _getCaseDataTableString(cases, cols) {
     return helper.formatTableDataString(caseData, cols) || '';
 }
 
-function _processData(operation, confirmedCases, deadCases, recoveredCases) {
+function _processData(operation, confirmedCases, deadCases, recoveredCases, customTreshold) {
     const confirmedCols = [
         {colProperty: 'healthCareDistrict', headerName: 'Alue'},
         {colProperty: 'amt', headerName: `Tartunnat`},
-        {colProperty: 'newCases', headerName: `24h`}
+        {colProperty: 'newCases', headerName: customTreshold ? 'Uusia' : '24h'}
     ];
     const recoveredCols = [
         {colProperty: 'healthCareDistrict', headerName: 'Alue'},
         {colProperty: 'amt', headerName: `Parantuneet`},
-        {colProperty: 'newCases', headerName: `24h`}
+        {colProperty: 'newCases', headerName: customTreshold ? 'Uusia' : '24h'}
     ];
     const deadCols = [
         {colProperty: 'healthCareDistrict', headerName: 'Alue'},
         {colProperty: 'amt', headerName: `Kuolleet`},
-        {colProperty: 'newCases', headerName: `24h`}
+        {colProperty: 'newCases', headerName: customTreshold ? 'Uusia' : '24h'}
     ];
+
+    if (customTreshold) {
+        _treshold = customTreshold;
+    }
 
     var lastUpdateString = _getLatestOperationTime(operation).add(2, 'hours').format('DD.MM.YYYY HH:mm');
     var confirmedNew = _.filter(confirmedCases, _isAfterTreshold);
     var recoveredNew = _.filter(recoveredCases, _isAfterTreshold);
+    var deadNew = _.filter(deadCases, _isAfterTreshold);
     var confirmedPercent = (confirmedNew.length / (confirmedCases.length || 1) * 100).toFixed(0);
     var ingress = `Tartuntoja ${confirmedCases.length}, joista 24h aikana ${confirmedNew.length}.\nKasvua ${confirmedPercent}% vuorokaudessa.\n\nParantuneita ${recoveredCases.length}, joista 24h aikana ${recoveredNew.length}.`;
+    if (deadCases.length) ingress += `\n\nKuolleita ${deadCases.length}, joista 24h aikana ${deadNew.length}.`;
+
+
+    if (customTreshold) {
+        ingress = `Tartuntoja ${confirmedCases.length}, joista uusia ${confirmedNew.length}.\n\nParantuneita ${recoveredCases.length}, joista uusia ${recoveredNew.length}.`;
+        if (deadCases.length) ingress += `\n\nKuolleita ${deadCases.length}, joista uusia ${deadNew.length}.`;
+    }
 
     var resultMsg = helper.formatListMessage(`Tilastot (${lastUpdateString})`, ingress, [], []);
     var confirmedDataString = _getCaseDataTableString(confirmedCases, confirmedCols);
     var recoveredDataString = _getCaseDataTableString(recoveredCases, recoveredCols);
-    var deadDataString = '';
-
-    if (deadCases.length) {
-        var deadNew = _.filter(deadCases, _isAfterTreshold);
-        ingress += `\n\nKuolleita ${deadCases.length}, joista 24h aikana ${deadNew.length}.`;
-        deadDataString = _getCaseDataTableString(deadCases, deadCols);
-    }
+    var deadDataString = deadCases.length ? _getCaseDataTableString(deadCases, deadCols) : '';
 
     return {
         status: 1,
@@ -125,7 +132,7 @@ module.exports = {
                         resolve({status: 0, message: 'No new cases'});
                     } else {
                         database.updateOperation(operation).then(() => {
-                            var resultMessage = _processData(results[4], results[1], results[2], results[3]);
+                            var resultMessage = _processData(results[4], results[1], results[2], results[3], operationTreshold);
                             var result = {
                                 status: 1,
                                 hasMultipleMessages: true,
