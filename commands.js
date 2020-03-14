@@ -5,6 +5,7 @@
 const helper = require('./helper');
 const statsHandler = require('./handlers/statsHandler');
 const pushHandler = require('./handlers/pushHanlder');
+const SECRET_CHALLENGE = process.env.SECRET_CHALLENGE;
 
 /**
  * Commands
@@ -39,6 +40,10 @@ module.exports = {
             const command = helper.parseCommand(messageText);
 
             if (!chatId) {
+                if (event.challengeResponse !== SECRET_CHALLENGE || !event.challengeResponse) {
+                    reject('Not authorized');
+                    return;
+                }
                 switch (command.name) {
                     case 'notifynewcases':
                         statsHandler.checkNewCases(resolve, reject);
