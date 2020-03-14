@@ -4,6 +4,7 @@
 
 const helper = require('./helper');
 const statsHandler = require('./handlers/statsHandler');
+const pushHandler = require('./handlers/pushHanlder');
 
 /**
  * Commands
@@ -48,9 +49,18 @@ module.exports = {
                         break;
                 }
             } else {
+                var chatTitle = helper.getEventChatTitle(event);
+                console.log(event.body.message);
+                console.log(chatTitle);
                 switch (command.name) {
                     case 'stats':
                         statsHandler.getStatistics(resolve, reject);
+                        break;
+                    case 'startupdates':
+                        pushHandler.startPushNotifications(chatId, chatTitle, resolve, reject);
+                        break;
+                    case 'stopupdates':
+                        pushHandler.stopPushNotifications(chatId, chatTitle, resolve, reject);
                         break;
                     default:
                         resolve({status: 0, message: 'Not a command'});

@@ -5,6 +5,7 @@
 const AWS = require('aws-sdk');
 const caseFunctions = require('./databaseFunctions/caseFunctions');
 const operationFunctions = require('./databaseFunctions/operationFunctions');
+const notificationFunctions = require('./databaseFunctions/notificationFunctions');
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
 
 module.exports = {
@@ -22,5 +23,17 @@ module.exports = {
     },
     updateOperation(operation) {
         return operationFunctions.updateOperation(dynamoDb, operation);
+    },
+    insertPushNotificator(notificator) {
+        return notificationFunctions.insertPushNotificator(dynamoDb, notificator);
+    },
+    updatePushNotificator(notificator) {
+        return notificationFunctions.updatePushNotificator(dynamoDb, notificator);
+    },
+    getPushNotificator(chatId, origin) {
+        return notificationFunctions.getPushNotificator(dynamoDb, chatId, origin);
+    },
+    getNotificators(origin) {
+        return notificationFunctions.getNotificators(dynamoDb, origin);
     }
 };

@@ -104,6 +104,19 @@ module.exports = {
 
         return chatId;
     },
+    getEventChatTitle(event) {
+        var title = '';
+
+        if (event.body.message && event.body.message.chat && event.body.message.chat.title) {
+            title = event.body.message.chat.title;
+        } else if (event.body.message && event.body.message.chat && event.body.message.chat.username) {
+            title = event.body.message.chat.username;
+        } else if (event.body.channel_post && event.body.channel_post.chat && event.body.channel_post.chat.title) {
+            title = event.body.channel_post.chat.title;
+        }
+
+        return title;
+    },
     getEventMessageText(event) {
         var message = '';
         if (event.body.channel_post && event.body.channel_post.text) {

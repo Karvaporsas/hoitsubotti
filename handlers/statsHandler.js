@@ -7,7 +7,7 @@ const helper = require('./../helper');
 const moment = require('moment');
 const _ = require('underscore');
 const _treshold = moment().add(-1, 'day');
-const _notifiedChats = (process.env.NOTIFIED_CHATS ? process.env.NOTIFIED_CHATS.split(',') : []);
+const _botNotificationName = 'hoitsubotti';
 
 function _getLatestOperationTime(operation) {
     const mon = parseInt(operation.mon) + 1;
@@ -103,48 +103,53 @@ function _processData(operation, confirmedCases, deadCases, recoveredCases) {
 
 module.exports = {
     checkNewCases(resolve, reject) {
-        if (!_notifiedChats.length) {
-            reject('No chats to notify. Set NOTIFIED_CHATS');
-        } else {
-            var initialPromises = [];
+        database.getNotificators(_botNotificationName).then((chatsToNotify) => {
+            if (!chatsToNotify.length) {
+                reject('No chats to notify. Set NOTIFIED_CHATS');
+            } else {
+                var initialPromises = [];
 
-            initialPromises.push(database.getLatestOperation('coronaautosender'));
-            initialPromises.push(database.getConfirmedCases());
-            initialPromises.push(database.getDeadCases());
-            initialPromises.push(database.getRecoveredCases());
-            initialPromises.push(database.getLatestOperation('coronaloader'));
+                initialPromises.push(database.getLatestOperation('coronaautosender'));
+                initialPromises.push(database.getConfirmedCases());
+                initialPromises.push(database.getDeadCases());
+                initialPromises.push(database.getRecoveredCases());
+                initialPromises.push(database.getLatestOperation('coronaloader'));
 
-            Promise.all(initialPromises).then((results) => {
-                var operation = results[0];
-                var operationTreshold = _getLatestOperationTime(operation).subtract(1, 'minute');
-                var allCases = results[1].concat(results[2]).concat(results[3]);
-                var allNewCases = _.filter(allCases, function (c) { return c.insertDate.isAfter(operationTreshold); });
+                Promise.all(initialPromises).then((results) => {
+                    var operation = results[0];
+                    var operationTreshold = _getLatestOperationTime(operation).subtract(1, 'minute');
+                    var allCases = results[1].concat(results[2]).concat(results[3]);
+                    var allNewCases = _.filter(allCases, function (c) { return c.insertDate.isAfter(operationTreshold); });
 
-                if (!allNewCases.length) {
-                    resolve({status: 0, message: 'No new cases'});
-                } else {
-                    database.updateOperation(operation).then(() => {
-                        var resultMessage = _processData(results[4], results[1], results[2], results[3]);
-                        var result = {
-                            status: 1,
-                            hasMultipleMessages: true,
-                            message: resultMessage,
-                            chatIds: []
-                        };
+                    if (!allNewCases.length) {
+                        resolve({status: 0, message: 'No new cases'});
+                    } else {
+                        database.updateOperation(operation).then(() => {
+                            var resultMessage = _processData(results[4], results[1], results[2], results[3]);
+                            var result = {
+                                status: 1,
+                                hasMultipleMessages: true,
+                                message: resultMessage,
+                                chatIds: []
+                            };
 
-                        for (const chatId of _notifiedChats) {
-                            result.chatIds.push(parseInt(chatId));
-                        }
+                            for (const notificator of chatsToNotify) {
+                                result.chatIds.push(parseInt(notificator.chatId));
+                            }
 
-                        resolve(result);
-                    }).catch((e) => {
-                        reject(e);
-                    });
-                }
-            }).catch((e) => {
-                reject(e);
-            });
-        }
+                            resolve(result);
+                        }).catch((e) => {
+                            reject(e);
+                        });
+                    }
+                }).catch((e) => {
+                    reject(e);
+                });
+            }
+
+        }).catch((e) => {
+            reject(e);
+        });
     },
     getStatistics(resolve, reject) {
         var initialPromises = [];
