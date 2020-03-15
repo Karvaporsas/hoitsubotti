@@ -1,5 +1,5 @@
 # Hoitsubotti
-Hoitsubotti tarjoilee koronatilastoja telegramiin. Botin handler on @Hoitsubot, tai osoitteesta https://t.me/Hoitsubot
+Hoitsubotti tarjoilee koronatilastoja telegramiin. Botin handler on @Hoitsubot, tai osoitteesta [https://t.me/Hoitsubot](https://t.me/Hoitsubot)
 
 ## Komennot
 
