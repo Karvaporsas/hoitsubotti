@@ -144,7 +144,7 @@ module.exports = {
                     ];
 
                     var operation = results[0];
-                    var operationTreshold = _getLatestOperationTime(operation).subtract(1, 'minute');
+                    var operationTreshold = _getLatestOperationTime(operation).subtract(30, 'seconds');
                     const hasNewConfirmed = _.filter(results[1], function(c) { return c.insertDate.isAfter(operationTreshold); }).length > 0;
                     const hasNewDeaths = _.filter(results[2], function(c) { return c.insertDate.isAfter(operationTreshold); }).length > 0;
                     const hasNewRecovered = _.filter(results[3], function(c) { return c.insertDate.isAfter(operationTreshold); }).length > 0;
@@ -157,7 +157,7 @@ module.exports = {
                         const recoveredTableString = _getCaseDataTableString(results[3], cols, 'insertDate', operationTreshold, true);
 
                         database.updateOperation(operation).then(() => {
-                            var newSinceString = operationTreshold.format('DD.MM.YYYY HH:mm');
+                            var newSinceString = operationTreshold.add(2, 'hours').format('DD.MM.YYYY HH:mm'); // FROM GMT to FIN
                             var ingress = `Uudet tapaukset ${newSinceString} lähtien.`;
                             var header = helper.formatListMessage(`Uudet tapaukset`, ingress, [], []);
                             var resultMessage = `${header}`;
