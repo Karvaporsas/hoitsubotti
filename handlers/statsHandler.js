@@ -166,6 +166,8 @@ module.exports = {
                             if (hasNewRecovered) resultMessage += `\nParantuneet${recoveredTableString}`;
                             if (hasNewDeaths) resultMessage += `\nKuolleet${deathsTableString}`;
 
+                            resultMessage += `\n\nHae lisää infoa /stats -komennolla.`;
+
                             var result = {
                                 status: 1,
                                 hasMultipleMessages: true,
