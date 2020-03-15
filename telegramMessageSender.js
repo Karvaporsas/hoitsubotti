@@ -9,6 +9,14 @@ const rp = require('request-promise');
 const _keyboard_cols = 2;
 
 module.exports = {
+    /**
+     * Sends messages to telegram api
+     *
+     * @param {number} chatId where to send
+     * @param {object} messageObject what to send
+     *
+     * @returns Promise
+     */
     sendMessageToTelegram(chatId, messageObject) {
         var method = '';
         var form = {

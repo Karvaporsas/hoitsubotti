@@ -2,6 +2,14 @@
 /*jshint esversion: 6 */
 'use strict';
 
+/**
+ * Builds a constant length string with white space at the end
+ *
+ * @param {string|number|boolean} message to send
+ * @param {number} maxLength into what length message is trimmed to
+ *
+ * @returns trimmed string
+ */
 function getIndentedColMessage(message, maxLength) {
     const countValue = maxLength + 1 - message.toString().length;
     return '' + message + (' ').repeat(countValue);
@@ -11,6 +19,12 @@ function getIndentedColMessage(message, maxLength) {
  * Helper
  */
 module.exports = {
+    /**
+     * Parses command and attributes out of input
+     * @param {string} message to parse
+     *
+     * @returns object containing command name and args
+     */
     parseCommand(message) {
         const tokens = message.split(' ');
         if (!tokens[0].match(/^\//)) {
@@ -27,6 +41,11 @@ module.exports = {
         return c;
     },
 
+    /**
+     * @param {object} event as input
+     *
+     * @returns userid of event sender
+     */
     getEventUserId(event) {
         var userId = 0;
 
@@ -58,6 +77,13 @@ module.exports = {
 
         return message;
     },
+    /**
+     * Creates table from input with custom rows
+     * @param {Array} rows to put into table
+     * @param {Array} cols of table
+     *
+     * @returns string constisting ASCII-kind of table
+     */
     formatTableDataString(rows, cols) {
         var message = '';
 
@@ -94,6 +120,11 @@ module.exports = {
 
         return message;
     },
+    /**
+     * @param {object} event as input
+     *
+     * @returns chat id of event
+     */
     getEventChatId(event) {
         var chatId = 0;
         if (event.body.message && event.body.message.chat && event.body.message.chat.id) {
@@ -104,6 +135,11 @@ module.exports = {
 
         return chatId;
     },
+    /**
+     * @param {object} event as input
+     *
+     * @returns chat title of event
+     */
     getEventChatTitle(event) {
         var title = '';
 
@@ -117,6 +153,11 @@ module.exports = {
 
         return title;
     },
+    /**
+     * @param {Object} event as input
+     *
+     * @returns message text of event
+     */
     getEventMessageText(event) {
         var message = '';
         if (event.body.channel_post && event.body.channel_post.text) {

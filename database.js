@@ -8,7 +8,14 @@ const operationFunctions = require('./databaseFunctions/operationFunctions');
 const notificationFunctions = require('./databaseFunctions/notificationFunctions');
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
 
+/**
+ * Routes database calls to proper handlers and initializes db.
+ */
 module.exports = {
+    /**
+     * Gets latest-run operation from database
+     * @param {string} operationMainType to search
+     */
     getLatestOperation(operationMainType) {
         return caseFunctions.getLatestOperation(dynamoDb, operationMainType);
     },
