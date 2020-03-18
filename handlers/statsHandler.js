@@ -28,6 +28,9 @@ function _getLatestOperationTime(operation) {
  * @returns short enough county string
  */
 function _parseCountyName(countyName) {
+    if  (!countyName) {
+        return 'Tuntematon';
+    }
     if (countyName == 'Pohjois-Pohjanmaa') {
         return 'P-Pohjanmaa';
     }
@@ -46,7 +49,7 @@ function _getCaseDataTableString(cases, cols, tresholdParam, treshold, hideIfNoN
     var caseData = [];
 
     var countyGroups = _.groupBy(cases, function (c) {
-        return c.healthCareDistrict;
+        return _parseCountyName(c.healthCareDistrict);
     });
 
     for (const countyName in countyGroups) {
@@ -55,7 +58,7 @@ function _getCaseDataTableString(cases, cols, tresholdParam, treshold, hideIfNoN
             const newCases = _.filter(g, function(c) { return c[tresholdParam].isAfter(treshold); }); //jshint ignore:line
             if (!hideIfNoNewCases || (hideIfNoNewCases && newCases.length)) {
                 caseData.push({
-                    healthCareDistrict: _parseCountyName(countyName),
+                    healthCareDistrict: countyName,
                     amt: g.length,
                     newCases: newCases.length
                 });
