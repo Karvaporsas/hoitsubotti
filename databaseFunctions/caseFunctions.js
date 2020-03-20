@@ -52,13 +52,18 @@ module.exports = {
             var params = {
                 TableName: CONFIRMED_TABLE,
                 ProjectionExpression: '#id, #acq, #hcd, #is, #isc, #insDate',
+                FilterExpression: '#isremoved <> :isremoved',
                 ExpressionAttributeNames: {
                     '#id': 'id',
                     '#acq': 'acqDate',
                     '#hcd': 'healthCareDistrict',
                     '#is': 'infectionSource',
                     '#isc': 'infectionSourceCountry',
-                    '#insDate': 'insertDate'
+                    '#insDate': 'insertDate',
+                    '#isremoved': 'isremoved'
+                },
+                ExpressionAttributeValues: {
+                    ':isremoved': true
                 }
             };
 
@@ -84,11 +89,16 @@ module.exports = {
             var params = {
                 TableName: DEATHS_TABLE,
                 ProjectionExpression: '#id, #d, #hcd, #insDate',
+                FilterExpression: '#isremoved <> :isremoved',
                 ExpressionAttributeNames: {
                     '#id': 'id',
                     '#d': 'date',
                     '#hcd': 'healthCareDistrict',
-                    '#insDate': 'insertDate'
+                    '#insDate': 'insertDate',
+                    '#isremoved': 'isremoved'
+                },
+                ExpressionAttributeValues: {
+                    ':isremoved': true
                 }
             };
 
@@ -114,11 +124,16 @@ module.exports = {
             var params = {
                 TableName: RECOVERED_TABLE,
                 ProjectionExpression: '#id, #d, #hcd, #insDate',
+                FilterExpression: '#isremoved <> :isremoved',
                 ExpressionAttributeNames: {
                     '#id': 'id',
                     '#d': 'date',
                     '#hcd': 'healthCareDistrict',
-                    '#insDate': 'insertDate'
+                    '#insDate': 'insertDate',
+                    '#isremoved': 'isremoved'
+                },
+                ExpressionAttributeValues: {
+                    ':isremoved': true
                 }
             };
 
