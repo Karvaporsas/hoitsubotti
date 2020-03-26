@@ -45,9 +45,21 @@ function _getGrowthRate(casesInPeriod, allCases) {
 function _getCasesByDate(daysAgo, allCases) {
     const beginMoment = moment().subtract(daysAgo, 'days').hour(0).minute(0).second(0);
     const endMoment  = moment().subtract(daysAgo, 'days').hour(23).minute(59).second(59);
-    const validCases = _.filter(allCases, function (c) { return c.acqDate.isBefore(endMoment); });
 
-    return _.filter(validCases, function (c) { return c.acqDate.isAfter(beginMoment) && c.acqDate.isBefore(endMoment); });
+    return _.filter(allCases, function (c) { return c.acqDate.isAfter(beginMoment) && c.acqDate.isBefore(endMoment); });
+}
+
+/**
+ * Gets cases that occure before x days ago.
+ * @param {int} daysAgo treshold value. Cases before end of this date are returned
+ * @param {Array} allCases All cases
+ *
+ * @returns array of cases occuring before certain point in time
+ */
+function _getCasesBeforeDate(daysAgo, allCases) {
+    const endMoment  = moment().subtract(daysAgo, 'days').hour(23).minute(59).second(59);
+
+    return _.filter(allCases, function (c) { return c.acqDate.isBefore(endMoment); });
 }
 
 /**
@@ -278,8 +290,9 @@ module.exports = {
             const cases = allInitResults[0];
             var doublingTimes = [];
             for (let daysAgo = 0; daysAgo < 14; daysAgo++) {
-                const casesAtDate = _getCasesByDate(daysAgo, cases);
-                const growthRate = _getGrowthRate(casesAtDate, cases);
+                const casesBeforeDate = _getCasesBeforeDate(daysAgo, cases);
+                const casesAtDate = _getCasesByDate(daysAgo, casesBeforeDate);
+                const growthRate = _getGrowthRate(casesAtDate, casesBeforeDate);
                 const dt = _getDoublingTime(growthRate).toFixed(1);
                 const dtString = dt > 0 ? `${dt} päivää` : 'Ei muutosta';
                 const daysAgoDateString = moment().subtract(daysAgo, 'days').format('D.M.');
@@ -296,7 +309,7 @@ module.exports = {
                     dt: dtString
                 });
             }
-            const ingress = 'Tartuntojen tuplaantumisajan kehitys viimeisen 2 viikon ajalta';
+            const ingress = 'Tartuntojen tuplaantumisajan muutos viimeisen 2 viikon ajalta';
             const resultMsg = helper.formatListMessage(`Tuplaantumisaika`, ingress, doublingTimes, doublingTimeCols);
 
             resolve({
