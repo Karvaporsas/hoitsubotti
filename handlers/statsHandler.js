@@ -19,7 +19,8 @@ const _perHourTimeWindow = moment().add(-3, 'days');
  */
 function _getDoublingTime(growthRate) {
     if (growthRate == 0) return -1;
-    return 70 / growthRate; // using the rule of 70 https://mru.org/dictionary-economics/rule-of-70-definition
+
+    return Math.log(2) / Math.log(1 + growthRate); // using the formula from here https://en.wikipedia.org/wiki/Doubling_time
 }
 
 /**
@@ -27,12 +28,12 @@ function _getDoublingTime(growthRate) {
  * @param {Array} casesInPeriod
  * @param {Array} allCases
  *
- * @returns number indicating growth rate percentage. 5% growth rate is returned as 5, not 0.05
+ * @returns number indicating growth rate percentage. 5% growth rate is returned as 0.05, not 5
  */
 function _getGrowthRate(casesInPeriod, allCases) {
     if (allCases.length == 0) return 0;
 
-    return casesInPeriod.length / allCases.length * 100;
+    return casesInPeriod.length / allCases.length;
 }
 
 /**
