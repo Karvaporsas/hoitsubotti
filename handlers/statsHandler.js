@@ -9,7 +9,46 @@ const _ = require('underscore');
 const _botNotificationName = 'hoitsubotti';
 
 var _treshold = moment().add(-1, 'day');
-const _perHourTimeWindow = moment().add(-2, 'days');
+const _perHourTimeWindow = moment().add(-3, 'days');
+
+/**
+ * Calculates case doubling time
+ * @param {float} growthRate of cases in time period
+ *
+ * @returns number of period units is required for cases to double. -1 is returned if there is no growth at all.
+ */
+function _getDoublingTime(growthRate) {
+    if (growthRate == 0) return -1;
+    return 70 / growthRate; // using the rule of 70 https://mru.org/dictionary-economics/rule-of-70-definition
+}
+
+/**
+ * Calculates periodical growth rate of cases
+ * @param {Array} casesInPeriod
+ * @param {Array} allCases
+ *
+ * @returns number indicating growth rate percentage. 5% growth rate is returned as 5, not 0.05
+ */
+function _getGrowthRate(casesInPeriod, allCases) {
+    if (allCases.length == 0) return 0;
+
+    return casesInPeriod.length / allCases.length * 100;
+}
+
+/**
+ * Gets cases that occured x days ago, from array of cases
+ * @param {int} daysAgo which day's cases to fetch. 0 is today, 1 is yesterday...
+ * @param {Array} allCases from where to find cases
+ *
+ * @returns cases in array
+ */
+function _getCasesByDate(daysAgo, allCases) {
+    const beginMoment = moment().subtract(daysAgo, 'days').hour(0).minute(0).second(0);
+    const endMoment  = moment().subtract(daysAgo, 'days').hour(23).minute(59).second(59);
+    const validCases = _.filter(allCases, function (c) { return c.acqDate.isBefore(endMoment); });
+
+    return _.filter(validCases, function (c) { return c.acqDate.isAfter(beginMoment) && c.acqDate.isBefore(endMoment); });
+}
 
 /**
  * Gets last operation run time
@@ -103,11 +142,11 @@ function _createCaseData(operation, confirmedCases, deadCases, recoveredCases) {
 
     var lastUpdateString = _getLatestOperationTime(operation).add(2, 'hours').format('DD.MM.YYYY HH:mm');
     var confirmedNew = _.filter(confirmedCases, function (c) { return c.acqDate.isAfter(_treshold); });
-    var confirmedPerHour = (_.filter(confirmedCases, function (c) { return c.acqDate.isAfter(_perHourTimeWindow); }).length / 48).toFixed(1);
+    var confirmedPerHour = (_.filter(confirmedCases, function (c) { return c.acqDate.isAfter(_perHourTimeWindow); }).length / 72).toFixed(1);
     var recoveredNew = _.filter(recoveredCases, function (c) { return c.date.isAfter(_treshold); });
     var deadNew = _.filter(deadCases, function (c) { return c.date.isAfter(_treshold); });
     var confirmedPercent = (confirmedNew.length / (confirmedCases.length || 1) * 100).toFixed(0);
-    var ingress = `Tartuntoja <strong>${confirmedCases.length}</strong>, joista 24h aikana <strong>${confirmedNew.length}</strong>.\nKasvua <strong>${confirmedPercent}</strong>% vuorokaudessa.\n\n<strong>${confirmedPerHour}</strong> uutta tartuntaa tunnissa viimeisen 48h aikana.\n\nParantuneita <strong>${recoveredCases.length}</strong>, joista 24h aikana <strong>${recoveredNew.length}</strong>.`;
+    var ingress = `Tartuntoja <strong>${confirmedCases.length}</strong>, joista 24h aikana <strong>${confirmedNew.length}</strong>.\nKasvua <strong>${confirmedPercent}</strong>% vuorokaudessa.\n\n<strong>${confirmedPerHour}</strong> uutta tartuntaa tunnissa viimeisen 3 päivän aikana.\n\nParantuneita <strong>${recoveredCases.length}</strong>, joista 24h aikana <strong>${recoveredNew.length}</strong>.`;
 
     if (deadCases.length) ingress += `\n\nKuolleita <strong>${deadCases.length}</strong>, joista 24h aikana <strong>${deadNew.length}</strong>.`;
 
@@ -217,6 +256,54 @@ module.exports = {
 
         Promise.all(initialPromises).then((allInitResults) => {
             resolve(_createCaseData(allInitResults[0], allInitResults[1], allInitResults[2], allInitResults[3]));
+        }).catch((e) => {
+            reject(e);
+        });
+    },
+    /**
+     * Generates statistics about the doubling time of virus
+     * @param {function} resolve executed when caller function is successfully finished. Contains result of this
+     * @param {function} reject executed when caller function receives an error
+     */
+    getDoublingTime(resolve, reject) {
+        const doublingTimeCols = [
+            {colProperty: 'dateString', headerName: 'Pvm'},
+            {colProperty: 'dt', headerName: `Aika`}
+        ];
+        var initialPromises = [];
+
+        initialPromises.push(database.getConfirmedCases());
+
+        Promise.all(initialPromises).then((allInitResults) => {
+            const cases = allInitResults[0];
+            var doublingTimes = [];
+            for (let daysAgo = 0; daysAgo < 14; daysAgo++) {
+                const casesAtDate = _getCasesByDate(daysAgo, cases);
+                const growthRate = _getGrowthRate(casesAtDate, cases);
+                const dt = _getDoublingTime(growthRate).toFixed(1);
+                const dtString = dt > 0 ? `${dt} päivää` : 'Ei muutosta';
+                const daysAgoDateString = moment().subtract(daysAgo, 'days').format('D.M.');
+
+                if (daysAgo % 7 == 0 && daysAgo > 0) {
+                    doublingTimes.push({
+                        dateString: ' ',
+                        dt: ' '
+                    });
+                }
+
+                doublingTimes.push({
+                    dateString: daysAgoDateString,
+                    dt: dtString
+                });
+            }
+            const ingress = 'Taudin tuplaantumisajan kehitys viimeisen 2 viikon ajalta';
+            const resultMsg = helper.formatListMessage(`Tuplaantumisaika`, ingress, doublingTimes, doublingTimeCols);
+
+            resolve({
+                status: 1,
+                type: 'text',
+                message: resultMsg
+            });
         }).catch((e) => {
             reject(e);
         });

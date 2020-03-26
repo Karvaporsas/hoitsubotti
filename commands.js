@@ -59,6 +59,9 @@ module.exports = {
                     case 'stats':
                         statsHandler.getStatistics(resolve, reject);
                         break;
+                    case 'doublingtime':
+                        statsHandler.getDoublingTime(resolve, reject);
+                        break;
                     case 'startupdates':
                         pushHandler.startPushNotifications(chatId, chatTitle, resolve, reject);
                         break;
