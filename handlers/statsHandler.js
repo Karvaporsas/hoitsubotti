@@ -296,7 +296,7 @@ module.exports = {
                     dt: dtString
                 });
             }
-            const ingress = 'Taudin tuplaantumisajan kehitys viimeisen 2 viikon ajalta';
+            const ingress = 'Tartuntojen tuplaantumisajan kehitys viimeisen 2 viikon ajalta';
             const resultMsg = helper.formatListMessage(`Tuplaantumisaika`, ingress, doublingTimes, doublingTimeCols);
 
             resolve({
