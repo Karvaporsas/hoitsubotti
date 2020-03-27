@@ -275,10 +275,11 @@ module.exports = {
     },
     /**
      * Generates statistics about the doubling time of virus
+     * @param {Array} args contains arguments for function. [0] health care district name (string)
      * @param {function} resolve executed when caller function is successfully finished. Contains result of this
      * @param {function} reject executed when caller function receives an error
      */
-    getDoublingTime(resolve, reject) {
+    getDoublingTime(args, resolve, reject) {
         const doublingTimeCols = [
             {colProperty: 'dateString', headerName: 'Pvm'},
             {colProperty: 'dt', headerName: `Aika`}
@@ -288,7 +289,22 @@ module.exports = {
         initialPromises.push(database.getConfirmedCases());
 
         Promise.all(initialPromises).then((allInitResults) => {
-            const cases = allInitResults[0];
+            var cases = allInitResults[0];
+            var hcd = '';
+            if (args && args.length > 0) {
+                cases = _.filter(cases, function (c) { return c.healthCareDistrict == args[0]; });
+
+                if (!cases.length) {
+                    resolve({
+                        status: 1,
+                        message: 'Nothing to show'
+                    });
+                    return;
+                } else {
+                    hcd = args[0];
+                }
+            }
+
             var doublingTimes = [];
             for (let daysAgo = 0; daysAgo < 14; daysAgo++) {
                 const casesBeforeDate = _getCasesBeforeDate(daysAgo, cases);
@@ -311,7 +327,8 @@ module.exports = {
                 });
             }
             const ingress = 'Tartuntojen tuplaantumisajan muutos viimeisen 2 viikon ajalta';
-            const resultMsg = helper.formatListMessage(`Tuplaantumisaika`, ingress, doublingTimes, doublingTimeCols);
+            const header = hcd ? `Tuplaantumisaika (${hcd})` : `Tuplaantumisaika`;
+            const resultMsg = helper.formatListMessage(header, ingress, doublingTimes, doublingTimeCols);
 
             resolve({
                 status: 1,
