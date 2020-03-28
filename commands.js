@@ -7,6 +7,16 @@ const statsHandler = require('./handlers/statsHandler');
 const pushHandler = require('./handlers/pushHanlder');
 const SECRET_CHALLENGE = process.env.SECRET_CHALLENGE;
 
+function _getHelpMessage(resolve, reject) {
+    var message = `Jos löydät botista virheen tai sinulla on parannusehdotuksia, voit kirjata ne minulle täällä:\n\nhttps://github.com/Karvaporsas/hoitsubotti/issues`;
+
+    resolve({
+        status: 1,
+        type: 'text',
+        message: message
+    });
+}
+
 /**
  * Commands
  */
@@ -67,6 +77,9 @@ module.exports = {
                         break;
                     case 'stopupdates':
                         pushHandler.stopPushNotifications(chatId, chatTitle, resolve, reject);
+                        break;
+                    case 'help':
+                        _getHelpMessage(resolve, reject);
                         break;
                     default:
                         resolve({status: 0, message: 'Not a command'});
