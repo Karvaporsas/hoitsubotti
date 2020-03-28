@@ -7,7 +7,7 @@ Hoitsu ymmärtää toistaseksi seuraavia komentoja
 
 + **stats** - Suomen koronatilastot
 + **doublingtime** - Tilasto tartuntojen tuplaantumisajan muutoksista (kirjoita komennon perään sairaanhoitopiirin nimi saadaksesi vain sen alueen tuplaantumisajan, esim */doublingtime HUS*)
-**help** - Tietoja botista
++ **help** - Tietoja botista
 + **startupdates** - Vastaanota automaattisia viestejä uusista tartunnoista
 + **stopupdates** - Lopeta automaattisten viestien vastaanotto
 
