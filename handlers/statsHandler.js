@@ -153,7 +153,7 @@ function _createCaseData(operation, confirmedCases, deadCases, recoveredCases) {
         {colProperty: 'newCases', headerName: '24h'}
     ];
 
-    var lastUpdateString = _getLatestOperationTime(operation).add(2, 'hours').format('DD.MM.YYYY HH:mm');
+    var lastUpdateString = _getLatestOperationTime(operation).add(3, 'hours').format('DD.MM.YYYY HH:mm'); //Localize fo FIN time
     var confirmedNew = _.filter(confirmedCases, function (c) { return c.acqDate.isAfter(_treshold); });
     var confirmedPerHour = (_.filter(confirmedCases, function (c) { return c.acqDate.isAfter(_perHourTimeWindow); }).length / 72).toFixed(1);
     var recoveredNew = _.filter(recoveredCases, function (c) { return c.date.isAfter(_treshold); });
