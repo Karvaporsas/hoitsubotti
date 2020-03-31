@@ -31,6 +31,12 @@ module.exports = {
     updateOperation(operation) {
         return operationFunctions.updateOperation(dynamoDb, operation);
     },
+    getChartLink(chartName) {
+        return operationFunctions.getChartLink(dynamoDb, chartName);
+    },
+    updateChartLink(chartLink) {
+        return operationFunctions.updateChartLink(dynamoDb, chartLink);
+    },
     insertPushNotificator(notificator) {
         return notificationFunctions.insertPushNotificator(dynamoDb, notificator);
     },

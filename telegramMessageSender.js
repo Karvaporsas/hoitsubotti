@@ -6,7 +6,36 @@ const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
 const DEBUG_MODE = process.env.DEBUG_MODE === 'ON';
 const helper = require('./helper');
 const rp = require('request-promise');
+const FormData = require('form-data');
+const fs = require('fs');
+const Axios = require('axios');
 const _keyboard_cols = 2;
+
+function _sendByAxios(chatId, method, messageObject, resolve, reject) {
+    var url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/${method}`;
+    var formData = new FormData();
+    formData.append('chat_id', chatId);
+
+    switch (method) {
+        case 'sendPhoto':
+            formData.append('photo', fs.createReadStream(messageObject.image));
+            formData.append('caption', messageObject.caption);
+            break;
+        default:
+            reject('Unknown message type to axios');
+            return;
+    }
+
+    Axios.create({
+        headers: formData.getHeaders()
+    }).post(url, formData).then((result) => {
+        resolve(result);
+    }).catch((err) => {
+        console.log('Error while sending axios message');
+        console.log(err);
+        reject(err);
+    });
+}
 
 module.exports = {
     /**
@@ -45,6 +74,11 @@ module.exports = {
                 form.callback_query_id = messageObject.callbackId;
                 form.text = messageObject.message;
                 break;
+            case 'image':
+                method = 'sendPhoto';
+                return new Promise((resolve, reject) => {
+                    _sendByAxios(chatId, method, messageObject, resolve, reject);
+                });
             default:
                 console.error(`Tried to send message with unknown type ${messageObject.type}`);
                 return new Promise((resolve, reject) => {

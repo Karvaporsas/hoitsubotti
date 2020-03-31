@@ -7,7 +7,6 @@ const OPERATIONS_TABLE = process.env.OPERATIONS_TABLE;
 const CONFIRMED_TABLE = process.env.CONFIRMED_TABLE;
 const DEATHS_TABLE = process.env.DEATHS_TABLE;
 const RECOVERED_TABLE = process.env.RECOVERED_TABLE;
-
 const utils = require('../utils');
 
 module.exports = {

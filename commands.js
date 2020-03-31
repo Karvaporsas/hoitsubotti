@@ -5,6 +5,7 @@
 const helper = require('./helper');
 const statsHandler = require('./handlers/statsHandler');
 const pushHandler = require('./handlers/pushHanlder');
+const chartsHandler = require('./handlers/chartsHandler');
 const SECRET_CHALLENGE = process.env.SECRET_CHALLENGE;
 
 function _getHelpMessage(resolve, reject) {
@@ -77,6 +78,9 @@ module.exports = {
                         break;
                     case 'stopupdates':
                         pushHandler.stopPushNotifications(chatId, chatTitle, resolve, reject);
+                        break;
+                    case 'charts':
+                        chartsHandler.getCharts(resolve, reject);
                         break;
                     case 'help':
                         _getHelpMessage(resolve, reject);
