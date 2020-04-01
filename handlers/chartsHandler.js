@@ -4,8 +4,6 @@
 
 const AWS = require('aws-sdk');
 const s3 = new AWS.S3();
-const _ = require('underscore');
-const moment = require('moment');
 const fs = require('fs');
 const database = require('./../database');
 const DEBUG_MODE = process.env.DEBUG_MODE === 'ON';
