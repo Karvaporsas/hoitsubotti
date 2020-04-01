@@ -15,3 +15,7 @@ Hoitsu ymmärtää toistaseksi seuraavia komentoja
 ## Tietoja
 
 Botti toimii AWS:n Lambdan päällä ja tarvitsee toimiakseen yhteyden tietokantaan sekä Telegramin palvelimille asetetun webhookin.
+
+## Data
+
+Tällä hetkellä data haetaan THL:n avoimesta datasta. Se ei toistaiseksi tarjoa tietoa kuolleiden tai parantuneiden määrästä.
