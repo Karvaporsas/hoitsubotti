@@ -7,6 +7,7 @@ const helper = require('./../helper');
 const moment = require('moment');
 const _ = require('underscore');
 const _botNotificationName = 'hoitsubotti';
+const DATASOURCE = process.env.DATASOURCE || 'DB';
 
 var _treshold = moment().add(-1, 'day');
 const _perHourTimeWindow = moment().add(-3, 'days');
@@ -136,7 +137,7 @@ function _getCaseDataTableString(cases, cols, tresholdParam, treshold, hideIfNoN
  *
  * @returns message object to send to telegram
  */
-function _createCaseData(operation, confirmedCases, deadCases, recoveredCases) {
+function _createCaseData(operation, confirmedCases, deadCases = [], recoveredCases = []) {
     const confirmedCols = [
         {colProperty: 'healthCareDistrict', headerName: 'Alue'},
         {colProperty: 'amt', headerName: `Tartunnat`},
@@ -159,19 +160,22 @@ function _createCaseData(operation, confirmedCases, deadCases, recoveredCases) {
     var recoveredNew = _.filter(recoveredCases, function (c) { return c.date.isAfter(_treshold); });
     var deadNew = _.filter(deadCases, function (c) { return c.date.isAfter(_treshold); });
     var confirmedPercent = (confirmedNew.length / (confirmedCases.length || 1) * 100).toFixed(0);
-    var ingress = `Tartuntoja <strong>${confirmedCases.length}</strong>, joista 24h aikana <strong>${confirmedNew.length}</strong>.\nKasvua <strong>${confirmedPercent}</strong>% vuorokaudessa.\n\n<strong>${confirmedPerHour}</strong> uutta tartuntaa tunnissa viimeisen 3 päivän aikana.\n\nParantuneita <strong>${recoveredCases.length}</strong>, joista 24h aikana <strong>${recoveredNew.length}</strong>.`;
+    var ingress = `Tartuntoja <strong>${confirmedCases.length}</strong>, joista 24h aikana <strong>${confirmedNew.length}</strong>.\nKasvua <strong>${confirmedPercent}</strong>% vuorokaudessa.\n\n<strong>${confirmedPerHour}</strong> uutta tartuntaa tunnissa viimeisen 3 päivän aikana.`;
 
+    if (recoveredCases.length) ingress += `\n\nParantuneita <strong>${recoveredCases.length}</strong>, joista 24h aikana <strong>${recoveredNew.length}</strong>.`;
     if (deadCases.length) ingress += `\n\nKuolleita <strong>${deadCases.length}</strong>, joista 24h aikana <strong>${deadNew.length}</strong>.`;
 
     var resultMsg = helper.formatListMessage(`Tilastot (${lastUpdateString})`, ingress, [], []);
     var confirmedDataString = _getCaseDataTableString(confirmedCases, confirmedCols, 'acqDate', _treshold);
-    var recoveredDataString = _getCaseDataTableString(recoveredCases, recoveredCols, 'date', _treshold);
+    var recoveredDataString = recoveredCases.length ? _getCaseDataTableString(recoveredCases, recoveredCols, 'date', _treshold) : '';
     var deadDataString = deadCases.length ? _getCaseDataTableString(deadCases, deadCols, 'date', _treshold) : '';
+
+    var sourceString = '\n\nLähde: THL';
 
     return {
         status: 1,
         type: 'text',
-        message: `${resultMsg}${confirmedDataString}${recoveredDataString}${deadDataString}`
+        message: `${resultMsg}${confirmedDataString}${recoveredDataString}${deadDataString}${sourceString}`
     };
 }
 
@@ -190,28 +194,40 @@ module.exports = {
                 var initialPromises = [];
 
                 initialPromises.push(database.getLatestOperation('coronaautosender'));
-                initialPromises.push(database.getConfirmedCases());
-                initialPromises.push(database.getDeadCases());
-                initialPromises.push(database.getRecoveredCases());
+                initialPromises.push(database.getConfirmedCases(DATASOURCE));
 
-                Promise.all(initialPromises).then((results) => {
+                switch (DATASOURCE) {
+                    case 'DB':
+                        initialPromises.push(database.getDeadCases());
+                        initialPromises.push(database.getRecoveredCases());
+                        break;
+                    case 'S3':
+                    default:
+                        break;
+                }
+
+                Promise.all(initialPromises).then((responses) => {
                     const cols = [
                         {colProperty: 'healthCareDistrict', headerName: 'Alue'},
                         {colProperty: 'newCases', headerName: 'Uusia'}
                     ];
+                    var sourceDependetTresholdTime = DATASOURCE == 'THL' ? 3 : 0;
 
-                    var operation = results[0];
-                    var operationTreshold = _getLatestOperationTime(operation).subtract(30, 'seconds');
-                    const hasNewConfirmed = _.filter(results[1], function(c) { return c.insertDate.isAfter(operationTreshold); }).length > 0;
-                    const hasNewDeaths = _.filter(results[2], function(c) { return c.insertDate.isAfter(operationTreshold); }).length > 0;
-                    const hasNewRecovered = _.filter(results[3], function(c) { return c.insertDate.isAfter(operationTreshold); }).length > 0;
+                    var operation = responses[0];
+                    var confirmed = responses[1];
+                    var deaths = responses[2] || [];
+                    var recovered = responses[3] || [];
+                    var operationTreshold = _getLatestOperationTime(operation).subtract(30, 'seconds').add(sourceDependetTresholdTime, 'hours');
+                    const hasNewConfirmed = _.filter(confirmed, function(c) { return c.insertDate.isAfter(operationTreshold); }).length > 0;
+                    const hasNewDeaths = _.filter(deaths, function(c) { return c.insertDate.isAfter(operationTreshold); }).length > 0;
+                    const hasNewRecovered = _.filter(recovered, function(c) { return c.insertDate.isAfter(operationTreshold); }).length > 0;
 
                     if (!hasNewConfirmed && !hasNewDeaths && !hasNewRecovered) {
                         resolve({status: 0, message: 'No new cases'});
                     } else {
-                        const confirmedTableString = _getCaseDataTableString(results[1], cols, 'insertDate', operationTreshold, true);
-                        const deathsTableString = _getCaseDataTableString(results[2], cols, 'insertDate', operationTreshold, true);
-                        const recoveredTableString = _getCaseDataTableString(results[3], cols, 'insertDate', operationTreshold, true);
+                        const confirmedTableString = _getCaseDataTableString(confirmed, cols, 'insertDate', operationTreshold, true);
+                        const deathsTableString = _getCaseDataTableString(deaths, cols, 'insertDate', operationTreshold, true);
+                        const recoveredTableString = _getCaseDataTableString(recovered, cols, 'insertDate', operationTreshold, true);
 
                         database.updateOperation(operation).then(() => {
                             var newSinceString = operationTreshold.add(2, 'hours').format('DD.MM.YYYY HH:mm'); // FROM GMT to FIN
@@ -223,7 +239,7 @@ module.exports = {
                             if (hasNewRecovered) resultMessage += `\nParantuneet${recoveredTableString}`;
                             if (hasNewDeaths) resultMessage += `\nKuolleet${deathsTableString}`;
 
-                            resultMessage += `\n\nHae lisää infoa /stats -komennolla.`;
+                            resultMessage += `\n\nHae lisää infoa /stats -komennolla.\n\nLähde: THL`;
 
                             var result = {
                                 status: 1,
@@ -240,6 +256,8 @@ module.exports = {
                                 result.chatIds.push(parseInt(notificator.chatId));
                             }
 
+                            //result.chatIds = [623371910]; // testing chat
+
                             resolve(result);
                         }).catch((e) => {
                             reject(e);
@@ -249,7 +267,6 @@ module.exports = {
                     reject(e);
                 });
             }
-
         }).catch((e) => {
             reject(e);
         });
@@ -263,9 +280,16 @@ module.exports = {
         var initialPromises = [];
 
         initialPromises.push(database.getLatestOperation('coronaloader'));
-        initialPromises.push(database.getConfirmedCases());
-        initialPromises.push(database.getDeadCases());
-        initialPromises.push(database.getRecoveredCases());
+        initialPromises.push(database.getConfirmedCases(DATASOURCE));
+        switch (DATASOURCE) {
+            case 'DB':
+                initialPromises.push(database.getDeadCases());
+                initialPromises.push(database.getRecoveredCases());
+                break;
+            case 'S3':
+            default:
+                break;
+        }
 
         Promise.all(initialPromises).then((allInitResults) => {
             resolve(_createCaseData(allInitResults[0], allInitResults[1], allInitResults[2], allInitResults[3]));
@@ -286,7 +310,7 @@ module.exports = {
         ];
         var initialPromises = [];
 
-        initialPromises.push(database.getConfirmedCases());
+        initialPromises.push(database.getConfirmedCases(DATASOURCE));
 
         Promise.all(initialPromises).then((allInitResults) => {
             var cases = allInitResults[0];
@@ -333,7 +357,7 @@ module.exports = {
             resolve({
                 status: 1,
                 type: 'text',
-                message: resultMsg
+                message: `${resultMsg}\n\nLähde: THL`
             });
         }).catch((e) => {
             reject(e);

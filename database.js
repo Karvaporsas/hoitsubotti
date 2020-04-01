@@ -3,6 +3,7 @@
 'use strict';
 
 const AWS = require('aws-sdk');
+const s3 = new AWS.S3();
 const caseFunctions = require('./databaseFunctions/caseFunctions');
 const operationFunctions = require('./databaseFunctions/operationFunctions');
 const notificationFunctions = require('./databaseFunctions/notificationFunctions');
@@ -19,8 +20,15 @@ module.exports = {
     getLatestOperation(operationMainType) {
         return caseFunctions.getLatestOperation(dynamoDb, operationMainType);
     },
-    getConfirmedCases() {
-        return caseFunctions.getConfirmedCases(dynamoDb);
+    getConfirmedCases(dataSource) {
+        switch (dataSource) {
+            case 'S3':
+                return caseFunctions.getConfirmedCasesFromS3(s3, dynamoDb);
+            case 'DB':
+            default:
+                return caseFunctions.getConfirmedCases(dynamoDb);
+        }
+
     },
     getDeadCases() {
         return caseFunctions.getDeadCases(dynamoDb);
