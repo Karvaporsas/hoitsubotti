@@ -99,7 +99,7 @@ module.exports = {
                                     for (let index = 0; index < dayOfHCD.value; index++) {
                                         var md = moment(dayOfHCD.date);
                                         results.push({
-                                            acqDate: md,
+                                            date: md,
                                             healthCareDistrict: dayOfHCD.healthCareDistrict,
                                             insertDate: md
                                         });
@@ -128,11 +128,11 @@ module.exports = {
         return new Promise((resolve, reject) => {
             var params = {
                 TableName: CONFIRMED_TABLE,
-                ProjectionExpression: '#id, #acq, #hcd, #is, #isc, #insDate',
+                ProjectionExpression: '#id, #d, #hcd, #is, #isc, #insDate',
                 FilterExpression: '#isremoved <> :isremoved',
                 ExpressionAttributeNames: {
                     '#id': 'id',
-                    '#acq': 'acqDate',
+                    '#d': 'date',
                     '#hcd': 'healthCareDistrict',
                     '#is': 'infectionSource',
                     '#isc': 'infectionSourceCountry',
@@ -149,7 +149,7 @@ module.exports = {
                     resolve([]);
                 } else {
                     for (const coronaCase of cases) {
-                        coronaCase.acqDate = moment(coronaCase.acqDate);
+                        coronaCase.date = moment(coronaCase.date);
                         coronaCase.insertDate = moment(coronaCase.insertDate);
                     }
                     resolve(cases);

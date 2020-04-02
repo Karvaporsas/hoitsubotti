@@ -6,9 +6,11 @@ const AWS = require('aws-sdk');
 const s3 = new AWS.S3();
 const fs = require('fs');
 const database = require('./../database');
+const helper = require('./../helper');
 const DEBUG_MODE = process.env.DEBUG_MODE === 'ON';
 const CHART_LINK_DAILY_NEW = process.env.CHART_LINK_DAILY_NEW;
 const CHART_BUCKET = process.env.CHART_BUCKET;
+const DATASOURCE = process.env.DATASOURCE || 'DB';
 
 function _getChart(chartLink) {
     return new Promise((resolve, reject) => {
@@ -45,11 +47,12 @@ module.exports = {
             imgToSend = img;
             return database.updateChartLink(linkItem);
         }).then(() => {
+            var caption = 'Uudet tartunnat Suomessa 30 päivän ajalta. Lähde: ' + helper.getSourceString(DATASOURCE);
             resolve({
                 status: 1,
                 type: 'image',
                 image: imgToSend,
-                caption: 'Uudet tartunnat Suomessa 30 päivän ajalta'
+                caption: caption
             });
         }).catch((e) => {
             reject(e);

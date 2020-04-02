@@ -167,5 +167,14 @@ module.exports = {
         }
 
         return message;
+    },
+    getSourceString(dataSource) {
+        switch (dataSource) {
+            case 'S3':
+                return '<strong>THL avoin data</strong>';
+            case 'DB':
+            default:
+                return '<strong>HS avoin data</strong>';
+        }
     }
 };

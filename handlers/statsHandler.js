@@ -48,7 +48,7 @@ function _getCasesByDate(daysAgo, allCases) {
     const beginMoment = moment().subtract(daysAgo, 'days').hour(0).minute(0).second(0);
     const endMoment  = moment().subtract(daysAgo, 'days').hour(23).minute(59).second(59);
 
-    return _.filter(allCases, function (c) { return c.acqDate.isAfter(beginMoment) && c.acqDate.isBefore(endMoment); });
+    return _.filter(allCases, function (c) { return c.date.isAfter(beginMoment) && c.date.isBefore(endMoment); });
 }
 
 /**
@@ -61,7 +61,7 @@ function _getCasesByDate(daysAgo, allCases) {
 function _getCasesBeforeDate(daysAgo, allCases) {
     const endMoment  = moment().subtract(daysAgo, 'days').hour(23).minute(59).second(59);
 
-    return _.filter(allCases, function (c) { return c.acqDate.isBefore(endMoment); });
+    return _.filter(allCases, function (c) { return c.date.isBefore(endMoment); });
 }
 
 /**
@@ -155,8 +155,8 @@ function _createCaseData(operation, confirmedCases, deadCases = [], recoveredCas
     ];
 
     var lastUpdateString = _getLatestOperationTime(operation).add(3, 'hours').format('DD.MM.YYYY HH:mm'); //Localize fo FIN time
-    var confirmedNew = _.filter(confirmedCases, function (c) { return c.acqDate.isAfter(_treshold); });
-    var confirmedPerHour = (_.filter(confirmedCases, function (c) { return c.acqDate.isAfter(_perHourTimeWindow); }).length / 72).toFixed(1);
+    var confirmedNew = _.filter(confirmedCases, function (c) { return c.date.isAfter(_treshold); });
+    var confirmedPerHour = (_.filter(confirmedCases, function (c) { return c.date.isAfter(_perHourTimeWindow); }).length / 72).toFixed(1);
     var recoveredNew = _.filter(recoveredCases, function (c) { return c.date.isAfter(_treshold); });
     var deadNew = _.filter(deadCases, function (c) { return c.date.isAfter(_treshold); });
     var confirmedPercent = (confirmedNew.length / (confirmedCases.length || 1) * 100).toFixed(0);
@@ -166,11 +166,11 @@ function _createCaseData(operation, confirmedCases, deadCases = [], recoveredCas
     if (deadCases.length) ingress += `\n\nKuolleita <strong>${deadCases.length}</strong>, joista 24h aikana <strong>${deadNew.length}</strong>.`;
 
     var resultMsg = helper.formatListMessage(`Tilastot (${lastUpdateString})`, ingress, [], []);
-    var confirmedDataString = _getCaseDataTableString(confirmedCases, confirmedCols, 'acqDate', _treshold);
+    var confirmedDataString = _getCaseDataTableString(confirmedCases, confirmedCols, 'date', _treshold);
     var recoveredDataString = recoveredCases.length ? _getCaseDataTableString(recoveredCases, recoveredCols, 'date', _treshold) : '';
     var deadDataString = deadCases.length ? _getCaseDataTableString(deadCases, deadCols, 'date', _treshold) : '';
 
-    var sourceString = '\n\nLähde: THL';
+    var sourceString = '\n\nLähde: ' + helper.getSourceString(DATASOURCE);
 
     return {
         status: 1,
@@ -230,7 +230,8 @@ module.exports = {
                         const recoveredTableString = _getCaseDataTableString(recovered, cols, 'insertDate', operationTreshold, true);
 
                         database.updateOperation(operation).then(() => {
-                            var newSinceString = operationTreshold.add(2, 'hours').format('DD.MM.YYYY HH:mm'); // FROM GMT to FIN
+                            const srcString = helper.getSourceString(DATASOURCE);
+                            var newSinceString = operationTreshold.add(DATASOURCE == 'THL' ? 0 : 3, 'hours').format('DD.MM.YYYY HH:mm'); // FROM GMT to FIN
                             var ingress = `Uudet tapaukset ${newSinceString} lähtien.`;
                             var header = helper.formatListMessage(`Uudet tapaukset`, ingress, [], []);
                             var resultMessage = `${header}`;
@@ -239,7 +240,7 @@ module.exports = {
                             if (hasNewRecovered) resultMessage += `\nParantuneet${recoveredTableString}`;
                             if (hasNewDeaths) resultMessage += `\nKuolleet${deathsTableString}`;
 
-                            resultMessage += `\n\nHae lisää infoa /stats -komennolla.\n\nLähde: THL`;
+                            resultMessage += `\n\nHae lisää infoa /stats -komennolla.\n\nLähde: ${srcString}`;
 
                             var result = {
                                 status: 1,
@@ -255,8 +256,6 @@ module.exports = {
                             for (const notificator of chatsToNotify) {
                                 result.chatIds.push(parseInt(notificator.chatId));
                             }
-
-                            //result.chatIds = [623371910]; // testing chat
 
                             resolve(result);
                         }).catch((e) => {
@@ -353,11 +352,11 @@ module.exports = {
             const ingress = 'Tartuntojen tuplaantumisajan muutos viimeisen 2 viikon ajalta';
             const header = hcd ? `Tuplaantumisaika (${hcd})` : `Tuplaantumisaika`;
             const resultMsg = helper.formatListMessage(header, ingress, doublingTimes, doublingTimeCols);
-
+            const srcString = helper.getSourceString(DATASOURCE);
             resolve({
                 status: 1,
                 type: 'text',
-                message: `${resultMsg}\n\nLähde: THL`
+                message: `${resultMsg}\n\nLähde: ${srcString}`
             });
         }).catch((e) => {
             reject(e);
