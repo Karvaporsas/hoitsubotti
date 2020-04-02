@@ -15,6 +15,7 @@ function _sendByAxios(chatId, method, messageObject, resolve, reject) {
     var url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/${method}`;
     var formData = new FormData();
     formData.append('chat_id', chatId);
+    formData.append('parse_mode', 'HTML');
 
     switch (method) {
         case 'sendPhoto':
