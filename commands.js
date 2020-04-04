@@ -82,6 +82,9 @@ module.exports = {
                     case 'charts':
                         chartsHandler.getCharts(resolve, reject);
                         break;
+                    case 'hospital':
+                        chartsHandler.getHospitalCharts(resolve, reject);
+                        break;
                     case 'help':
                         _getHelpMessage(resolve, reject);
                         break;

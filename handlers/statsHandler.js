@@ -257,6 +257,8 @@ module.exports = {
                                 result.chatIds.push(parseInt(notificator.chatId));
                             }
 
+                            result.chatIds = [623371910];
+
                             resolve(result);
                         }).catch((e) => {
                             reject(e);
