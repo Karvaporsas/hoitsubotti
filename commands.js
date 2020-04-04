@@ -82,7 +82,7 @@ module.exports = {
                     case 'charts':
                         chartsHandler.getCharts(resolve, reject);
                         break;
-                    case 'hospital':
+                    case 'hospitals':
                         chartsHandler.getHospitalCharts(resolve, reject);
                         break;
                     case 'help':
