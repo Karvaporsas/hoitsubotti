@@ -9,7 +9,7 @@ const _ = require('underscore');
 const _botNotificationName = 'hoitsubotti';
 const DATASOURCE = process.env.DATASOURCE || 'DB';
 
-var _treshold = moment().add(-1, 'day');
+var _treshold = moment().subtract(3, 'days');
 const _perHourTimeWindow = moment().add(-3, 'days');
 
 /**
@@ -141,17 +141,17 @@ function _createCaseData(operation, confirmedCases, deadCases = [], recoveredCas
     const confirmedCols = [
         {colProperty: 'healthCareDistrict', headerName: 'Alue'},
         {colProperty: 'amt', headerName: `Tartunnat`},
-        {colProperty: 'newCases', headerName: '24h'}
+        {colProperty: 'newCases', headerName: '72h'}
     ];
     const recoveredCols = [
         {colProperty: 'healthCareDistrict', headerName: 'Alue'},
         {colProperty: 'amt', headerName: `Parantuneet`},
-        {colProperty: 'newCases', headerName: '24h'}
+        {colProperty: 'newCases', headerName: '72h'}
     ];
     const deadCols = [
         {colProperty: 'healthCareDistrict', headerName: 'Alue'},
         {colProperty: 'amt', headerName: `Kuolleet`},
-        {colProperty: 'newCases', headerName: '24h'}
+        {colProperty: 'newCases', headerName: '72h'}
     ];
 
     var lastUpdateString = _getLatestOperationTime(operation).add(3, 'hours').format('DD.MM.YYYY HH:mm'); //Localize fo FIN time
@@ -160,10 +160,10 @@ function _createCaseData(operation, confirmedCases, deadCases = [], recoveredCas
     var recoveredNew = _.filter(recoveredCases, function (c) { return c.date.isAfter(_treshold); });
     var deadNew = _.filter(deadCases, function (c) { return c.date.isAfter(_treshold); });
     var confirmedPercent = (confirmedNew.length / (confirmedCases.length || 1) * 100).toFixed(0);
-    var ingress = `Tartuntoja <strong>${confirmedCases.length}</strong>, joista 24h aikana <strong>${confirmedNew.length}</strong>.\nKasvua <strong>${confirmedPercent}</strong>% vuorokaudessa.\n\n<strong>${confirmedPerHour}</strong> uutta tartuntaa tunnissa viimeisen 3 päivän aikana.`;
+    var ingress = `Tartuntoja <strong>${confirmedCases.length}</strong>, joista 72h aikana <strong>${confirmedNew.length}</strong>.\nKasvua <strong>${confirmedPercent}</strong>% kolmessa vuorokaudessa.\n\n<strong>${confirmedPerHour}</strong> uutta tartuntaa tunnissa viimeisen 72h aikana.`;
 
-    if (recoveredCases.length) ingress += `\n\nParantuneita <strong>${recoveredCases.length}</strong>, joista 24h aikana <strong>${recoveredNew.length}</strong>.`;
-    if (deadCases.length) ingress += `\n\nKuolleita <strong>${deadCases.length}</strong>, joista 24h aikana <strong>${deadNew.length}</strong>.`;
+    if (recoveredCases.length) ingress += `\n\nParantuneita <strong>${recoveredCases.length}</strong>, joista 72h aikana <strong>${recoveredNew.length}</strong>.`;
+    if (deadCases.length) ingress += `\n\nKuolleita <strong>${deadCases.length}</strong>, joista 72h aikana <strong>${deadNew.length}</strong>.`;
 
     var resultMsg = helper.formatListMessage(`Tilastot (${lastUpdateString})`, ingress, [], []);
     var confirmedDataString = _getCaseDataTableString(confirmedCases, confirmedCols, 'date', _treshold);
@@ -256,8 +256,6 @@ module.exports = {
                             for (const notificator of chatsToNotify) {
                                 result.chatIds.push(parseInt(notificator.chatId));
                             }
-
-                            result.chatIds = [623371910];
 
                             resolve(result);
                         }).catch((e) => {
