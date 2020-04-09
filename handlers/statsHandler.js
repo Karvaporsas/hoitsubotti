@@ -4,13 +4,15 @@
 
 const database = require('./../database');
 const helper = require('./../helper');
+const utils = require('./../utils');
 const moment = require('moment');
 const _ = require('underscore');
 const _botNotificationName = 'hoitsubotti';
 const DATASOURCE = process.env.DATASOURCE || 'DB';
+var m = moment();
 
-var _treshold = moment().subtract(3, 'days');
-const _perHourTimeWindow = moment().add(-3, 'days');
+var _treshold = moment().subtract(3, 'days').format(utils.getTimeFormat());
+const _perHourTimeWindow = moment().add(-3, 'days').format(utils.getTimeFormat());
 
 /**
  * Calculates case doubling time
@@ -45,10 +47,10 @@ function _getGrowthRate(casesInPeriod, allCases) {
  * @returns cases in array
  */
 function _getCasesByDate(daysAgo, allCases) {
-    const beginMoment = moment().subtract(daysAgo, 'days').hour(0).minute(0).second(0);
-    const endMoment  = moment().subtract(daysAgo, 'days').hour(23).minute(59).second(59);
+    const beginMoment = moment().subtract(daysAgo, 'days').hour(0).minute(0).second(0).format(utils.getTimeFormat());
+    const endMoment  = moment().subtract(daysAgo, 'days').hour(23).minute(59).second(59).format(utils.getTimeFormat());
 
-    return _.filter(allCases, function (c) { return c.date.isAfter(beginMoment) && c.date.isBefore(endMoment); });
+    return _.filter(allCases, function (c) { return c.dateSortString > beginMoment && c.dateSortString < endMoment; });
 }
 
 /**
@@ -59,9 +61,9 @@ function _getCasesByDate(daysAgo, allCases) {
  * @returns array of cases occuring before certain point in time
  */
 function _getCasesBeforeDate(daysAgo, allCases) {
-    const endMoment  = moment().subtract(daysAgo, 'days').hour(23).minute(59).second(59);
+    const endMoment  = moment().subtract(daysAgo, 'days').hour(23).minute(59).second(59).format(utils.getTimeFormat());
 
-    return _.filter(allCases, function (c) { return c.date.isBefore(endMoment); });
+    return _.filter(allCases, function (c) { return c.dateSortString < endMoment; });
 }
 
 /**
@@ -72,7 +74,7 @@ function _getCasesBeforeDate(daysAgo, allCases) {
  */
 function _getLatestOperationTime(operation) {
     const mon = parseInt(operation.mon) + 1;
-    return moment(`${operation.yr}-${mon}-${operation.day} ${operation.hour}:${operation.minute}:00`, 'YYYY-MM-DD HH:mm:ss');
+    return moment(`${operation.yr}-${mon}-${operation.day} ${operation.hour}:${operation.minute}:00`, utils.getTimeFormat());
 }
 
 /**
@@ -109,7 +111,7 @@ function _getCaseDataTableString(cases, cols, tresholdParam, treshold, hideIfNoN
     for (const countyName in countyGroups) {
         if (countyGroups.hasOwnProperty(countyName)) {
             const g = countyGroups[countyName];
-            const newCases = _.filter(g, function(c) { return c[tresholdParam].isAfter(treshold); }); //jshint ignore:line
+            const newCases = _.filter(g, function(c) { return c[tresholdParam] > treshold; }); //jshint ignore:line
             if (!hideIfNoNewCases || (hideIfNoNewCases && newCases.length)) {
                 caseData.push({
                     healthCareDistrict: countyName,
@@ -155,10 +157,10 @@ function _createCaseData(operation, confirmedCases, deadCases = [], recoveredCas
     ];
 
     var lastUpdateString = _getLatestOperationTime(operation).add(3, 'hours').format('DD.MM.YYYY HH:mm'); //Localize fo FIN time
-    var confirmedNew = _.filter(confirmedCases, function (c) { return c.date.isAfter(_treshold); });
-    var confirmedPerHour = (_.filter(confirmedCases, function (c) { return c.date.isAfter(_perHourTimeWindow); }).length / 72).toFixed(1);
-    var recoveredNew = _.filter(recoveredCases, function (c) { return c.date.isAfter(_treshold); });
-    var deadNew = _.filter(deadCases, function (c) { return c.date.isAfter(_treshold); });
+    var confirmedNew = _.filter(confirmedCases, function (c) { return c.dateSortString > _treshold; });
+    var confirmedPerHour = (_.filter(confirmedCases, function (c) { return c.dateSortString > _perHourTimeWindow; }).length / 72).toFixed(1);
+    var recoveredNew = _.filter(recoveredCases, function (c) { return c.dateSortString > _treshold; });
+    var deadNew = _.filter(deadCases, function (c) { return c.dateSortString > _treshold; });
     var confirmedPercent = (confirmedNew.length / (confirmedCases.length || 1) * 100).toFixed(0);
     var ingress = `Tartuntoja <strong>${confirmedCases.length}</strong>, joista 72h aikana <strong>${confirmedNew.length}</strong>.\nKasvua <strong>${confirmedPercent}</strong>% kolmessa vuorokaudessa.\n\n<strong>${confirmedPerHour}</strong> uutta tartuntaa tunnissa viimeisen 72h aikana.`;
 
@@ -171,7 +173,7 @@ function _createCaseData(operation, confirmedCases, deadCases = [], recoveredCas
     var deadDataString = deadCases.length ? _getCaseDataTableString(deadCases, deadCols, 'date', _treshold) : '';
 
     var sourceString = '\n\nLähde: ' + helper.getSourceString(DATASOURCE);
-
+    console.log('statsHandler.js: Statistics ready in ' + moment().diff(m) + ' milliseconds after invocation');
     return {
         status: 1,
         type: 'text',
@@ -217,17 +219,17 @@ module.exports = {
                     var confirmed = responses[1];
                     var deaths = responses[2] || [];
                     var recovered = responses[3] || [];
-                    var operationTreshold = _getLatestOperationTime(operation).subtract(30, 'seconds').add(sourceDependetTresholdTime, 'hours');
-                    const hasNewConfirmed = _.filter(confirmed, function(c) { return c.insertDate.isAfter(operationTreshold); }).length > 0;
-                    const hasNewDeaths = _.filter(deaths, function(c) { return c.insertDate.isAfter(operationTreshold); }).length > 0;
-                    const hasNewRecovered = _.filter(recovered, function(c) { return c.insertDate.isAfter(operationTreshold); }).length > 0;
+                    var operationTreshold = _getLatestOperationTime(operation).subtract(30, 'seconds').add(sourceDependetTresholdTime, 'hours').format(utils.getTimeFormat());
+                    const hasNewConfirmed = _.filter(confirmed, function(c) { return c.insertDateSortString > operationTreshold; }).length > 0;
+                    const hasNewDeaths = _.filter(deaths, function(c) { return c.insertDateSortString > operationTreshold; }).length > 0;
+                    const hasNewRecovered = _.filter(recovered, function(c) { return c.insertDateSortString > operationTreshold; }).length > 0;
 
                     if (!hasNewConfirmed && !hasNewDeaths && !hasNewRecovered) {
                         resolve({status: 0, message: 'No new cases'});
                     } else {
-                        const confirmedTableString = _getCaseDataTableString(confirmed, cols, 'insertDate', operationTreshold, true);
-                        const deathsTableString = _getCaseDataTableString(deaths, cols, 'insertDate', operationTreshold, true);
-                        const recoveredTableString = _getCaseDataTableString(recovered, cols, 'insertDate', operationTreshold, true);
+                        const confirmedTableString = _getCaseDataTableString(confirmed, cols, 'insertDateSortString', operationTreshold, true);
+                        const deathsTableString = _getCaseDataTableString(deaths, cols, 'insertDateSortString', operationTreshold, true);
+                        const recoveredTableString = _getCaseDataTableString(recovered, cols, 'insertDateSortString', operationTreshold, true);
 
                         database.updateOperation(operation).then(() => {
                             const srcString = helper.getSourceString(DATASOURCE);
@@ -276,6 +278,8 @@ module.exports = {
      * @param {function} reject contains error info
      */
     getStatistics(resolve, reject) {
+        m = moment();
+        console.log('statsHandler.js: Starting to get statistics');
         var initialPromises = [];
 
         initialPromises.push(database.getLatestOperation('coronaloader'));
@@ -291,6 +295,7 @@ module.exports = {
         }
 
         Promise.all(initialPromises).then((allInitResults) => {
+            console.log('statsHandler.js: initial promises handled in ' + moment().diff(m) + ' milliseconds after invocation');
             resolve(_createCaseData(allInitResults[0], allInitResults[1], allInitResults[2], allInitResults[3]));
         }).catch((e) => {
             reject(e);

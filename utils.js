@@ -39,5 +39,8 @@ module.exports = {
 
             dynamoDb.scan(params, chatScan);
         });
+    },
+    getTimeFormat() {
+        return 'YYYY-MM-DD HH:mm:ss';
     }
 };

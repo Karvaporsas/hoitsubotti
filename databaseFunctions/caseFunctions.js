@@ -101,7 +101,7 @@ module.exports = {
                                         results.push({
                                             date: md,
                                             healthCareDistrict: dayOfHCD.healthCareDistrict,
-                                            insertDate: md
+                                            insertDateSortString: md.format(utils.getTimeFormat())
                                         });
                                     }
                                 }
@@ -125,10 +125,13 @@ module.exports = {
         });
     },
     getConfirmedCases(dynamoDb) {
+        var m = moment();
+        console.log('Starting to get confirmed cases');
+
         return new Promise((resolve, reject) => {
             var params = {
                 TableName: CONFIRMED_TABLE,
-                ProjectionExpression: '#id, #d, #hcd, #is, #isc, #insDate',
+                ProjectionExpression: '#id, #d, #hcd, #is, #isc, #insDate, #datesort, #insertdatesort',
                 FilterExpression: '#isremoved <> :isremoved',
                 ExpressionAttributeNames: {
                     '#id': 'id',
@@ -137,7 +140,9 @@ module.exports = {
                     '#is': 'infectionSource',
                     '#isc': 'infectionSourceCountry',
                     '#insDate': 'insertDate',
-                    '#isremoved': 'isremoved'
+                    '#isremoved': 'isremoved',
+                    '#datesort': 'dateSortString',
+                    '#insertdatesort': 'insertDateSortString'
                 },
                 ExpressionAttributeValues: {
                     ':isremoved': true
@@ -148,10 +153,7 @@ module.exports = {
                 if (!cases || !cases.length) {
                     resolve([]);
                 } else {
-                    for (const coronaCase of cases) {
-                        coronaCase.date = moment(coronaCase.date);
-                        coronaCase.insertDate = moment(coronaCase.insertDate);
-                    }
+                    console.log('Ready to resolve in ' + moment().diff(m) + ' milliseconds');
                     resolve(cases);
                 }
             }).catch((e) => {
@@ -165,14 +167,16 @@ module.exports = {
         return new Promise((resolve, reject) => {
             var params = {
                 TableName: DEATHS_TABLE,
-                ProjectionExpression: '#id, #d, #hcd, #insDate',
+                ProjectionExpression: '#id, #d, #hcd, #insDate, #datesort, #insertdatesort',
                 FilterExpression: '#isremoved <> :isremoved',
                 ExpressionAttributeNames: {
                     '#id': 'id',
                     '#d': 'date',
                     '#hcd': 'healthCareDistrict',
                     '#insDate': 'insertDate',
-                    '#isremoved': 'isremoved'
+                    '#isremoved': 'isremoved',
+                    '#datesort': 'dateSortString',
+                    '#insertdatesort': 'insertDateSortString'
                 },
                 ExpressionAttributeValues: {
                     ':isremoved': true
@@ -183,10 +187,6 @@ module.exports = {
                 if (!cases || !cases.length) {
                     resolve([]);
                 } else {
-                    for (const coronaCase of cases) {
-                        coronaCase.date = moment(coronaCase.date);
-                        coronaCase.insertDate = moment(coronaCase.insertDate);
-                    }
                     resolve(cases);
                 }
             }).catch((e) => {
@@ -200,14 +200,16 @@ module.exports = {
         return new Promise((resolve, reject) => {
             var params = {
                 TableName: RECOVERED_TABLE,
-                ProjectionExpression: '#id, #d, #hcd, #insDate',
+                ProjectionExpression: '#id, #d, #hcd, #insDate, #datesort, #insertdatesort',
                 FilterExpression: '#isremoved <> :isremoved',
                 ExpressionAttributeNames: {
                     '#id': 'id',
                     '#d': 'date',
                     '#hcd': 'healthCareDistrict',
                     '#insDate': 'insertDate',
-                    '#isremoved': 'isremoved'
+                    '#isremoved': 'isremoved',
+                    '#datesort': 'dateSortString',
+                    '#insertdatesort': 'insertDateSortString'
                 },
                 ExpressionAttributeValues: {
                     ':isremoved': true
@@ -218,10 +220,6 @@ module.exports = {
                 if (!cases || !cases.length) {
                     resolve([]);
                 } else {
-                    for (const coronaCase of cases) {
-                        coronaCase.date = moment(coronaCase.date);
-                        coronaCase.insertDate = moment(coronaCase.insertDate);
-                    }
                     resolve(cases);
                 }
             }).catch((e) => {
