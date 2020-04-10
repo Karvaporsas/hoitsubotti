@@ -219,7 +219,8 @@ module.exports = {
                     var confirmed = responses[1];
                     var deaths = responses[2] || [];
                     var recovered = responses[3] || [];
-                    var operationTreshold = _getLatestOperationTime(operation).subtract(30, 'seconds').add(sourceDependetTresholdTime, 'hours').format(utils.getTimeFormat());
+                    var operationTresholdMoment = _getLatestOperationTime(operation).subtract(30, 'seconds').add(sourceDependetTresholdTime, 'hours');
+                    var operationTreshold = operationTresholdMoment.format(utils.getTimeFormat());
                     const hasNewConfirmed = _.filter(confirmed, function(c) { return c.insertDateSortString > operationTreshold; }).length > 0;
                     const hasNewDeaths = _.filter(deaths, function(c) { return c.insertDateSortString > operationTreshold; }).length > 0;
                     const hasNewRecovered = _.filter(recovered, function(c) { return c.insertDateSortString > operationTreshold; }).length > 0;
@@ -233,7 +234,7 @@ module.exports = {
 
                         database.updateOperation(operation).then(() => {
                             const srcString = helper.getSourceString(DATASOURCE);
-                            var newSinceString = operationTreshold.add(DATASOURCE == 'THL' ? 0 : 3, 'hours').format('DD.MM.YYYY HH:mm'); // FROM GMT to FIN
+                            var newSinceString = operationTresholdMoment.add(DATASOURCE == 'THL' ? 0 : 3, 'hours').format('DD.MM.YYYY HH:mm'); // FROM GMT to FIN
                             var ingress = `Uudet tapaukset ${newSinceString} lähtien.`;
                             var header = helper.formatListMessage(`Uudet tapaukset`, ingress, [], []);
                             var resultMessage = `${header}`;
