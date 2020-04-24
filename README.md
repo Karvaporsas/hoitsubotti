@@ -3,7 +3,7 @@ Hoitsubotti tarjoilee koronatilastoja telegramiin. Botin handler on @Hoitsubot, 
 
 ## Komennot
 
-Hoitsu ymmärtää toistaseksi seuraavia komentoja
+Hoitsu ymmärtää toistaseksi seuraavia komentoja (muistathan laittaa kenoviivan "/" kutsun eteen (esim /stats).
 
 + **stats** - Suomen koronatilastot
 + **doublingtime** - Tilasto tartuntojen tuplaantumisajan muutoksista (kirjoita komennon perään sairaanhoitopiirin nimi saadaksesi vain sen alueen tuplaantumisajan, esim */doublingtime HUS*)
