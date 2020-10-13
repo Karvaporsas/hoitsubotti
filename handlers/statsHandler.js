@@ -11,8 +11,8 @@ const _botNotificationName = 'hoitsubotti';
 const DATASOURCE = process.env.DATASOURCE || 'DB';
 var m = moment();
 
-var _treshold = moment().subtract(3, 'days').format(utils.getTimeFormat());
-const _perHourTimeWindow = moment().add(-3, 'days').format(utils.getTimeFormat());
+var _treshold = moment().subtract(7, 'days').format(utils.getTimeFormat());
+const _perHourTimeWindow = moment().add(-7, 'days').format(utils.getTimeFormat());
 
 /**
  * Calculates case doubling time
@@ -139,11 +139,11 @@ function _getCaseDataTableString(cases, cols, tresholdParam, treshold, hideIfNoN
  *
  * @returns message object to send to telegram
  */
-function _createCaseData(operation, confirmedCases, deadCases = [], recoveredCases = []) {
+function _createCaseData(operation, confirmedCases, deadCases = []/*, recoveredCases = []*/) {
     const confirmedCols = [
         {colProperty: 'healthCareDistrict', headerName: 'Alue'},
         {colProperty: 'amt', headerName: `Tartunnat`},
-        {colProperty: 'newCases', headerName: '72h'}
+        {colProperty: 'newCases', headerName: '7d'}
     ];
     const recoveredCols = [
         {colProperty: 'healthCareDistrict', headerName: 'Alue'},
@@ -153,23 +153,24 @@ function _createCaseData(operation, confirmedCases, deadCases = [], recoveredCas
     const deadCols = [
         {colProperty: 'healthCareDistrict', headerName: 'Alue'},
         {colProperty: 'amt', headerName: `Kuolleet`},
-        {colProperty: 'newCases', headerName: '72h'}
+        {colProperty: 'newCases', headerName: '7d'}
     ];
 
     var lastUpdateString = _getLatestOperationTime(operation).add(3, 'hours').format('DD.MM.YYYY HH:mm'); //Localize fo FIN time
     var confirmedNew = _.filter(confirmedCases, function (c) { return c.dateSortString > _treshold; });
-    var confirmedPerHour = (_.filter(confirmedCases, function (c) { return c.dateSortString > _perHourTimeWindow; }).length / 72).toFixed(1);
-    var recoveredNew = _.filter(recoveredCases, function (c) { return c.dateSortString > _treshold; });
+    var confirmedPerHour = (_.filter(confirmedCases, function (c) { return c.dateSortString > _perHourTimeWindow; }).length / 168).toFixed(1);
+    //var recoveredNew = _.filter(recoveredCases, function (c) { return c.dateSortString > _treshold; });
     var deadNew = _.filter(deadCases, function (c) { return c.dateSortString > _treshold; });
     var confirmedPercent = (confirmedNew.length / (confirmedCases.length || 1) * 100).toFixed(0);
-    var ingress = `Tartuntoja <strong>${confirmedCases.length}</strong>, joista 72h aikana <strong>${confirmedNew.length}</strong>.\nKasvua <strong>${confirmedPercent}</strong>% kolmessa vuorokaudessa.\n\n<strong>${confirmedPerHour}</strong> uutta tartuntaa tunnissa viimeisen 72h aikana.`;
+    var ingress = `Tartuntoja <strong>${confirmedCases.length}</strong>, joista viikon aikana <strong>${confirmedNew.length}</strong>.\nKasvua <strong>${confirmedPercent}</strong>% viikossa.\n\n<strong>${confirmedPerHour}</strong> uutta tartuntaa tunnissa viimeisen viikon aikana.`;
 
-    if (recoveredCases.length) ingress += `\n\nParantuneita <strong>${recoveredCases.length}</strong>, joista 72h aikana <strong>${recoveredNew.length}</strong>.`;
-    if (deadCases.length) ingress += `\n\nKuolleita <strong>${deadCases.length}</strong>, joista 72h aikana <strong>${deadNew.length}</strong>.`;
+    //if (recoveredCases.length) ingress += `\n\nParantuneita <strong>${recoveredCases.length}</strong>, joista 72h aikana <strong>${recoveredNew.length}</strong>.`;
+    if (deadCases.length) ingress += `\n\nKuolleita <strong>${deadCases.length}</strong>, joista viikon aikana <strong>${deadNew.length}</strong>.`;
 
     var resultMsg = helper.formatListMessage(`Tilastot (${lastUpdateString})`, ingress, [], []);
     var confirmedDataString = _getCaseDataTableString(confirmedCases, confirmedCols, 'date', _treshold);
-    var recoveredDataString = recoveredCases.length ? _getCaseDataTableString(recoveredCases, recoveredCols, 'date', _treshold) : '';
+    //var recoveredDataString = recoveredCases.length ? _getCaseDataTableString(recoveredCases, recoveredCols, 'date', _treshold) : '';
+    var recoveredDataString = '';
     var deadDataString = deadCases.length ? _getCaseDataTableString(deadCases, deadCols, 'date', _treshold) : '';
 
     var sourceString = '\n\nLähde: ' + helper.getSourceString(DATASOURCE);
@@ -288,7 +289,7 @@ module.exports = {
         switch (DATASOURCE) {
             case 'DB':
                 initialPromises.push(database.getDeadCases());
-                initialPromises.push(database.getRecoveredCases());
+                //initialPromises.push(database.getRecoveredCases());
                 break;
             case 'S3':
             default:
@@ -297,7 +298,7 @@ module.exports = {
 
         Promise.all(initialPromises).then((allInitResults) => {
             console.log('statsHandler.js: initial promises handled in ' + moment().diff(m) + ' milliseconds after invocation');
-            resolve(_createCaseData(allInitResults[0], allInitResults[1], allInitResults[2], allInitResults[3]));
+            resolve(_createCaseData(allInitResults[0], allInitResults[1], allInitResults[2]));
         }).catch((e) => {
             reject(e);
         });
@@ -314,12 +315,13 @@ module.exports = {
             {colProperty: 'dt', headerName: `Aika`}
         ];
         var initialPromises = [];
-
+        var threeMothTreshold = moment().subtract(3, 'months').format(utils.getTimeFormat());
         initialPromises.push(database.getConfirmedCases(DATASOURCE));
 
         Promise.all(initialPromises).then((allInitResults) => {
-            var cases = allInitResults[0];
             var hcd = '';
+            var cases = _.filter(allInitResults[0], function(c) { return c.dateSortString >= threeMothTreshold; });
+
             if (args && args.length > 0) {
                 cases = _.filter(cases, function (c) { return c.healthCareDistrict == args[0]; });
 
@@ -355,7 +357,7 @@ module.exports = {
                     dt: dtString
                 });
             }
-            const ingress = 'Tartuntojen tuplaantumisajan muutos viimeisen 2 viikon ajalta';
+            const ingress = 'Tartuntojen tuplaantumisajan muutos viimeisen 2 viikon ajalta suhteessa kolmen kuukauden tartuntoihin';
             const header = hcd ? `Tuplaantumisaika (${hcd})` : `Tuplaantumisaika`;
             const resultMsg = helper.formatListMessage(header, ingress, doublingTimes, doublingTimeCols);
             const srcString = helper.getSourceString(DATASOURCE);
