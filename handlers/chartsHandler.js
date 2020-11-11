@@ -7,6 +7,7 @@ const s3 = new AWS.S3();
 const fs = require('fs');
 const database = require('./../database');
 const helper = require('./../helper');
+const utils = require('./../utils');
 const DEBUG_MODE = process.env.DEBUG_MODE === 'ON';
 const CHART_LINK_DAILY_NEW = process.env.CHART_LINK_DAILY_NEW;
 const CHART_LINK_HOSPITALIZATIONS = process.env.CHART_LINK_HOSPITALIZATIONS;
@@ -34,14 +35,22 @@ function _getChart(chartLink) {
 }
 
 module.exports = {
-    getCharts(resolve, reject) {
+    getCharts(args, resolve, reject) {
         if (DEBUG_MODE) {
             console.log('starting to get charts');
+            console.log(args);
         }
         var linkItem;
         var imgToSend;
+        var specificChartLink = CHART_LINK_DAILY_NEW;
 
-        database.getChartLink(CHART_LINK_DAILY_NEW).then((chartLink) => {
+        if (args && args[0]) {
+            var healthCareDistricts = utils.getHCDNames();
+
+            if (healthCareDistricts.indexOf(args[0]) > -1) specificChartLink += `_${args[0]}`; // injection secure.
+        }
+
+        database.getChartLink(specificChartLink).then((chartLink) => {
             linkItem = chartLink;
             return _getChart(chartLink);
         }).then((img) => {

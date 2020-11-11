@@ -42,5 +42,30 @@ module.exports = {
     },
     getTimeFormat() {
         return 'YYYY-MM-DD HH:mm:ss';
-    }
+    },
+    getHCDNames() {
+        return [
+            'Ahvenanmaa',
+            'Varsinais-Suomi',
+            'Satakunta',
+            'Kanta-Häme',
+            'Pirkanmaa',
+            'Päijät-Häme',
+            'Kymenlaakso',
+            'Etelä-Karjala',
+            'Etelä-Savo',
+            'Itä-Savo',
+            'Pohjois-Karjala',
+            'Pohjois-Savo',
+            'Keski-Suomi',
+            'Etelä-Pohjanmaa',
+            'Vaasa',
+            'Keski-Pohjanmaa',
+            'Pohjois-Pohjanmaa',
+            'Kainuu',
+            'Länsi-Pohja',
+            'Lappi',
+            'HUS'
+        ];
+    },
 };

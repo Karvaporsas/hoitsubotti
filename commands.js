@@ -80,7 +80,7 @@ module.exports = {
                         pushHandler.stopPushNotifications(chatId, chatTitle, resolve, reject);
                         break;
                     case 'charts':
-                        chartsHandler.getCharts(resolve, reject);
+                        chartsHandler.getCharts(command.args, resolve, reject);
                         break;
                     case 'hospitals':
                         chartsHandler.getHospitalCharts(resolve, reject);
