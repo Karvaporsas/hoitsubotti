@@ -35,19 +35,19 @@ function _getChart(chartLink) {
 }
 
 module.exports = {
-    getCharts(args, resolve, reject) {
+    getCharts(callbackId, userId, replyId, chatId, convertedData, resolve, reject) {
         if (DEBUG_MODE) {
             console.log('starting to get charts');
-            console.log(args);
+            console.log(convertedData);
         }
         var linkItem;
         var imgToSend;
         var specificChartLink = CHART_LINK_DAILY_NEW;
 
-        if (args && args[0]) {
+        if (convertedData && convertedData[0] && convertedData[0] != 'Koko maa') {
             var healthCareDistricts = utils.getHCDNames();
 
-            if (healthCareDistricts.indexOf(args[0]) > -1) specificChartLink += `_${args[0]}`; // injection secure.
+            if (healthCareDistricts.indexOf(convertedData[0]) > -1) specificChartLink += `_${convertedData[0]}`; // injection secure.
         }
 
         database.getChartLink(specificChartLink).then((chartLink) => {
@@ -62,7 +62,16 @@ module.exports = {
                 status: 1,
                 type: 'image',
                 image: imgToSend,
-                caption: caption
+                caption: caption,
+                chatId: chatId,
+                handleCallBack: {
+                    callbackId: callbackId
+                },
+                updateMessage: {
+                    message: 'Uudet tartunnat',
+                    replyId: replyId,
+                    chatId: chatId
+                }
             });
         }).catch((e) => {
             reject(e);

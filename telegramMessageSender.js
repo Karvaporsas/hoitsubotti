@@ -10,9 +10,73 @@ const FormData = require('form-data');
 const fs = require('fs');
 const Axios = require('axios');
 const _keyboard_cols = 2;
+const URL_BASE = 'https://api.telegram.org/bot';
+
+function checkShouldEndListener(messageObject) {
+    return new Promise((resolve, reject) => {
+        if (messageObject.handleCallBack) {
+            var url = `${URL_BASE}${TELEGRAM_TOKEN}`;
+            var form = {
+                callback_query_id: messageObject.handleCallBack.callbackId,
+                text: 'Ladattu'
+            };
+            var msg = {
+                method: 'POST',
+                uri: `${url}/answerCallbackQuery`,
+                form: form
+            };
+
+            rp(msg).then((r) => {
+                resolve(r);
+            }).catch((e) => {
+                console.log('Error sending message');
+                console.log(e);
+                reject();
+            });
+        } else {
+            resolve({status: 1});
+        }
+    });
+}
+
+function checkShouldUpdate(messageObject) {
+    return new Promise((resolve, reject) => {
+        if (messageObject.updateMessage) {
+            var url = `${URL_BASE}${TELEGRAM_TOKEN}`;
+            var secondMessage = {
+                method: 'POST',
+                uri: `${url}/editMessageText`,
+                form: {
+                    text: messageObject.updateMessage.message,
+                    message_id: messageObject.updateMessage.replyId,
+                    chat_id: messageObject.updateMessage.chatId,
+                    parse_mode: 'HTML'
+                }
+            };
+
+            console.log("Sending update message");
+            rp(secondMessage).then((r) => {
+                if (DEBUG_MODE) {
+                    console.log(r);
+                }
+                resolve(r);
+            }).catch((e) => {
+                console.log('Error sending second message');
+                console.log(e);
+                reject();
+            });
+        } else {
+            resolve({status: 1});
+        }
+    });
+}
 
 function _sendByAxios(chatId, method, messageObject, resolve, reject) {
-    var url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/${method}`;
+    if (DEBUG_MODE) {
+        console.log(`ChatId is ${chatId}`);
+    }
+    if (messageObject.chatId && !chatId) chatId = messageObject.chatId;
+    var url = `${URL_BASE}${TELEGRAM_TOKEN}/${method}`;
     var formData = new FormData();
     formData.append('chat_id', chatId);
     formData.append('parse_mode', 'HTML');
@@ -30,7 +94,13 @@ function _sendByAxios(chatId, method, messageObject, resolve, reject) {
     Axios.create({
         headers: formData.getHeaders()
     }).post(url, formData).then((result) => {
-        resolve(result);
+
+        return checkShouldUpdate(messageObject);
+    }).then((updateResponse) => {
+        return checkShouldEndListener(messageObject);
+
+    }).then((listenerResponse) => {
+        resolve(listenerResponse);
     }).catch((err) => {
         console.log('Error while sending axios message');
         console.log(err);
@@ -56,6 +126,7 @@ module.exports = {
         if (DEBUG_MODE) {
             console.log("Constructing message");
             console.log(messageObject);
+            console.log(chatId);
         }
 
         switch (messageObject.type) {

@@ -176,5 +176,82 @@ module.exports = {
             default:
                 return '<strong>HS avoin data</strong>';
         }
+    },
+    getButtonData(hcds, callbackName, callBackData  = []) {
+        var rs = [];
+        var commandString = '';
+        if (callBackData && callBackData.length) commandString = ',' + callBackData.join(',');
+        for (const hcd of hcds) {
+            var cbData = `${callbackName},${hcd}${commandString}`;
+
+            rs.push({
+                callback_data: cbData,
+                text: hcd
+            });
+        }
+
+        return rs;
+    },
+    getEventMessageId(event) {
+        if (event.body.message) return event.body.message.message_id;
+        return 0;
+    },
+    createKeyboardLayout(keys, columnAmount) {
+        var keyboard = [];
+        var col = 0;
+        var row = 0;
+        for (let i = 0; i < keys.length; i++) {
+            if (col === 0) keyboard.push([]);
+            keyboard[row].push(keys[i]);
+
+            if (col === (columnAmount - 1)) row++;
+            col = (col + 1) % columnAmount;
+        }
+
+        return keyboard;
+    },
+    isCallback(event) {
+        if (!event.body.message && event.body.callback_query) return true;
+        return false;
+    },
+    getCallbackId(event) {
+        var id = null;
+
+        if (event.body.callback_query) id = event.body.callback_query.id;
+
+        return id;
+    },
+    parseCallbackData(dataString) {
+        if (!dataString || !dataString.trim()) return [];
+
+        return dataString.split(',');
+    },
+    getCallbackUserId(event) {
+        var id = 0;
+        if (event.body.callback_query && event.body.callback_query.from) id = event.body.callback_query.from.id;
+        return id;
+    },
+    getCallbackData(event) {
+        var result = "";
+
+        if (event.body.callback_query) result = event.body.callback_query.data;
+
+        return result;
+    },
+    getCallbackReplyId(event) {
+        var id = 0;
+
+        if (event.body.callback_query && event.body.callback_query.message) id = event.body.callback_query.message.message_id;
+
+        return id;
+    },
+    getCallbackChatId(event) {
+        var id = 0;
+
+        if (event.body.callback_query && event.body.callback_query.message && event.body.callback_query.message.chat) {
+            id = event.body.callback_query.message.chat.id;
+        }
+
+        return id;
     }
 };

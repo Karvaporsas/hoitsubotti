@@ -3,6 +3,7 @@
 'use strict';
 
 const helper = require('./helper');
+const utils = require('./utils');
 const statsHandler = require('./handlers/statsHandler');
 const pushHandler = require('./handlers/pushHanlder');
 const chartsHandler = require('./handlers/chartsHandler');
@@ -50,7 +51,27 @@ module.exports = {
             const messageText = helper.getEventMessageText(event);
             const command = helper.parseCommand(messageText);
 
-            if (!chatId) {
+            if (helper.isCallback(event)) {
+                console.log(event);
+
+                var data = helper.parseCallbackData(helper.getCallbackData(event));
+                const callbackId = helper.getCallbackId(event);
+                const callbackUserId = helper.getCallbackUserId(event);
+                const replyId = helper.getCallbackReplyId(event);
+                const replyChatId = helper.getCallbackChatId(event);
+                var first = data.shift();
+                console.log("starting to handle callback");
+                switch (first) {
+                    case 'charttarget':
+                        chartsHandler.getCharts(callbackId, callbackUserId, replyId, replyChatId, data, resolve, reject);
+                        break;
+                    default:
+                        resolve({status: 0, message: 'No such handler'});
+                        break;
+                }
+
+                return;
+            } else if (!chatId) {
                 if (event.challengeResponse !== SECRET_CHALLENGE || !event.challengeResponse) {
                     reject('Not authorized');
                     return;
@@ -80,7 +101,13 @@ module.exports = {
                         pushHandler.stopPushNotifications(chatId, chatTitle, resolve, reject);
                         break;
                     case 'charts':
-                        chartsHandler.getCharts(command.args, resolve, reject);
+                        //chartsHandler.getCharts(command.args, resolve, reject);
+                        var wholeCountry = ['Koko maa'];
+                        var hcds = utils.getHCDNames();
+                        var opts = helper.getButtonData(wholeCountry.concat(hcds.sort()), 'charttarget', [chatId]);
+
+                        resolve({status: 1, message: `<strong>Valitse alue</strong>`, type: 'text', keyboard: opts, replyToMessageId: helper.getEventMessageId(event)});
+
                         break;
                     case 'hospitals':
                         chartsHandler.getHospitalCharts(resolve, reject);
