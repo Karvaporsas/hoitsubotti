@@ -57,7 +57,7 @@ module.exports = {
             imgToSend = img;
             return database.updateChartLink(linkItem);
         }).then(() => {
-            var caption = 'Uudet tartunnat Suomessa 30 päivän ajalta. Lähde: ' + helper.getSourceString(DATASOURCE);
+            var caption = 'Uudet tartunnat 30 päivän ajalta. Lähde: ' + helper.getSourceString(DATASOURCE);
             resolve({
                 status: 1,
                 type: 'image',
@@ -68,7 +68,7 @@ module.exports = {
                     callbackId: callbackId
                 },
                 updateMessage: {
-                    message: 'Uudet tartunnat',
+                    message: `Uudet tartunnat ${convertedData[0]}`,
                     replyId: replyId,
                     chatId: chatId
                 }
