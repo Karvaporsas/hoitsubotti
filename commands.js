@@ -52,15 +52,15 @@ module.exports = {
             const command = helper.parseCommand(messageText);
 
             if (helper.isCallback(event)) {
-                console.log(event);
-
                 var data = helper.parseCallbackData(helper.getCallbackData(event));
                 const callbackId = helper.getCallbackId(event);
                 const callbackUserId = helper.getCallbackUserId(event);
                 const replyId = helper.getCallbackReplyId(event);
                 const replyChatId = helper.getCallbackChatId(event);
                 var first = data.shift();
+
                 console.log("starting to handle callback");
+
                 switch (first) {
                     case 'charttarget':
                         chartsHandler.getCharts(callbackId, callbackUserId, replyId, replyChatId, data, resolve, reject);

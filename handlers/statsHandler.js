@@ -222,8 +222,10 @@ module.exports = {
                     var recovered = responses[3] || [];
                     var operationTresholdMoment = _getLatestOperationTime(operation).subtract(30, 'seconds').add(sourceDependetTresholdTime, 'hours');
                     var operationTreshold = operationTresholdMoment.format(utils.getTimeFormat());
-                    const hasNewConfirmed = _.filter(confirmed, function(c) { return c.insertDateSortString > operationTreshold; }).length > 0;
-                    const hasNewDeaths = _.filter(deaths, function(c) { return c.insertDateSortString > operationTreshold; }).length > 0;
+                    const newConfirmedAmount = _.filter(confirmed, function(c) { return c.insertDateSortString > operationTreshold; }).length;
+                    const hasNewConfirmed= newConfirmedAmount > 0;
+                    const newDeathsAmount = _.filter(deaths, function(c) { return c.insertDateSortString > operationTreshold; }).length;
+                    const hasNewDeaths = newDeathsAmount > 0;
                     const hasNewRecovered = _.filter(recovered, function(c) { return c.insertDateSortString > operationTreshold; }).length > 0;
 
                     if (!hasNewConfirmed && !hasNewDeaths && !hasNewRecovered) {
@@ -240,9 +242,13 @@ module.exports = {
                             var header = helper.formatListMessage(`Uudet tapaukset`, ingress, [], []);
                             var resultMessage = `${header}`;
 
-                            if (hasNewConfirmed) resultMessage += `\nTartunnat${confirmedTableString}`;
+                            if (hasNewConfirmed) {
+                                resultMessage += `\nTartunnat${confirmedTableString}\n\nYhteensä ${newConfirmedAmount}`;
+                            }
                             if (hasNewRecovered) resultMessage += `\nParantuneet${recoveredTableString}`;
-                            if (hasNewDeaths) resultMessage += `\nKuolleet${deathsTableString}`;
+                            if (hasNewDeaths) {
+                                resultMessage += `\nKuolleet${deathsTableString}\n\nYhteensä ${newDeathsAmount}`;
+                            }
 
                             resultMessage += `\n\nHae lisää infoa /stats -komennolla.\n\nLähde: ${srcString}`;
 
