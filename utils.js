@@ -43,6 +43,9 @@ module.exports = {
     getTimeFormat() {
         return 'YYYY-MM-DD HH:mm:ss';
     },
+    getSortDateFormat() {
+        return 'YYYY-MM-DD';
+    },
     getHCDNames() {
         return [
             'Ahvenanmaa',

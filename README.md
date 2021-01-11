@@ -12,6 +12,7 @@ Hoitsu ymmärtää toistaseksi seuraavia komentoja (muistathan laittaa kenoviiva
 + **help** - Tietoja botista
 + **startupdates** - Vastaanota automaattisia viestejä uusista tartunnoista
 + **stopupdates** - Lopeta automaattisten viestien vastaanotto
++ **vaccination** - Rokotusten status
 
 ## Tietoja
 

@@ -112,6 +112,9 @@ module.exports = {
                     case 'hospitals':
                         chartsHandler.getHospitalCharts(resolve, reject);
                         break;
+                    case 'vaccinations':
+                        statsHandler.getVaccinations(command.args, resolve, reject);
+                        break;
                     case 'help':
                         _getHelpMessage(resolve, reject);
                         break;

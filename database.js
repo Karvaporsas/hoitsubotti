@@ -9,6 +9,22 @@ const operationFunctions = require('./databaseFunctions/operationFunctions');
 const notificationFunctions = require('./databaseFunctions/notificationFunctions');
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
 
+function _getCurrentVaccinationData(data) {
+    if (!data) return null;
+
+    var newest = '';
+    var vaccination = null;
+
+    for (const v of data) {
+        if (newest < v.dateSortString || !newest) {
+            newest = v.dateSortString;
+            vaccination = v;
+        }
+    }
+
+    return vaccination;
+}
+
 /**
  * Routes database calls to proper handlers and initializes db.
  */
@@ -29,6 +45,33 @@ module.exports = {
                 return caseFunctions.getConfirmedCases(dynamoDb);
         }
 
+    },
+    getCurrentVaccinationData(area) {
+        return caseFunctions.getVaccinationData(dynamoDb, area, 7).then(data => {
+            if (data.length) {
+                var vaccination = _getCurrentVaccinationData(data);
+
+                return new Promise((resolve, reject) => {
+                    if (vaccination) {
+                        resolve(vaccination);
+                    } else {
+                        reject();
+                    }
+                });
+            } else {
+                return caseFunctions.getVaccinationData(dynamoDb, area, 180).then(bigData => {
+                    var vaccination = _getCurrentVaccinationData(bigData);
+
+                    return new Promise((resolve, reject) => {
+                        if (vaccination) {
+                            resolve(vaccination);
+                        } else {
+                            reject();
+                        }
+                    });
+                });
+            }
+        });
     },
     getDeadCases() {
         return caseFunctions.getDeadCases(dynamoDb);

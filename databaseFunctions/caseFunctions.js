@@ -9,6 +9,7 @@ const OPERATIONS_TABLE = process.env.OPERATIONS_TABLE;
 const CONFIRMED_TABLE = process.env.CONFIRMED_TABLE;
 const DEATHS_TABLE = process.env.DEATHS_TABLE;
 const RECOVERED_TABLE = process.env.RECOVERED_TABLE;
+const VACCINATIONS_TABLE = process.env.VACCINATIONS_TABLE;
 const CASE_BUCKET = process.env.CHART_BUCKET;
 const THL_CASES_LINK = process.env.THL_CASES_LINK;
 const utils = require('../utils');
@@ -224,6 +225,39 @@ module.exports = {
                 }
             }).catch((e) => {
                 console.error('error getting confirmed cases');
+                console.log(e);
+                reject(e);
+            });
+        });
+    },
+    getVaccinationData(dynamoDb, area, dateTreshold = 0) {
+        return new Promise((resolve, reject) => {
+            var params = {
+                TableName: VACCINATIONS_TABLE,
+                ProjectionExpression: '#area, #date, #shots, #datesort',
+                FilterExpression: '#isremoved <> :isremoved AND #datesort >= :datetreshold AND #area = :area',
+                ExpressionAttributeNames: {
+                    '#area': 'area',
+                    '#date': 'date',
+                    '#shots': 'shots',
+                    '#datesort': 'dateSortString',
+                    '#isremoved': 'isremoved'
+                },
+                ExpressionAttributeValues: {
+                    ':isremoved': true,
+                    ':datetreshold': moment().subtract(dateTreshold, 'days').format(utils.getSortDateFormat()),
+                    ':area': area
+                }
+            };
+
+            utils.performScan(dynamoDb, params).then((vaccinations) => {
+                if (!vaccinations || !vaccinations.length) {
+                    resolve([]);
+                } else {
+                    resolve(vaccinations);
+                }
+            }).catch((e) => {
+                console.error('error getting vaccinations');
                 console.log(e);
                 reject(e);
             });

@@ -9,6 +9,9 @@ const moment = require('moment');
 const _ = require('underscore');
 const _botNotificationName = 'hoitsubotti';
 const DATASOURCE = process.env.DATASOURCE || 'DB';
+const VACCINATION_AREA = process.env.VACCINATION_AREA || 'Finland';
+const VACCINATION_START_DATE = process.env.VACCINATION_START_DATE || '2020-12-26';
+const SHOTS_NEEDED = 5000000 * 2;
 var m = moment();
 
 var _treshold = moment().subtract(7, 'days').format(utils.getTimeFormat());
@@ -306,6 +309,39 @@ module.exports = {
             console.log('statsHandler.js: initial promises handled in ' + moment().diff(m) + ' milliseconds after invocation');
             resolve(_createCaseData(allInitResults[0], allInitResults[1], allInitResults[2]));
         }).catch((e) => {
+            reject(e);
+        });
+    },
+    /**
+     * Generates aggregation of vaccination data
+     * @param {Array} args contains arguments for function. [0] health care district name (string)
+     * @param {function} resolve executed when caller function is successfully finished. Contains result of this
+     * @param {function} reject executed when caller function receives an error
+     */
+    getVaccinations(args, resolve, reject) {
+        database.getCurrentVaccinationData(VACCINATION_AREA).then((vaccinationData) => {
+            console.log('Calculating vaccinations');
+            console.log(vaccinationData);
+
+            const today = moment();
+            const vaccinationStartDate = moment(VACCINATION_START_DATE);
+            const hoursSinceStart = moment.duration(today.diff(vaccinationStartDate)).asHours();
+            console.log(`Hours since vaccinations started is ${hoursSinceStart}`);
+            const avgShotsPerHour = vaccinationData.shots / hoursSinceStart;
+            console.log(`Shots per hour is ${avgShotsPerHour}`);
+            const shotsLeft = SHOTS_NEEDED - vaccinationData.shots;
+            console.log(`Shots left to adminster is ${shotsLeft}`);
+            const hoursNeeded = shotsLeft / avgShotsPerHour;
+            console.log(`${hoursNeeded} hours are still needed`);
+            var almostDone = moment().add(hoursNeeded * 0.75, 'hours');
+            var finallyDone = moment().add(hoursNeeded, 'hours');
+
+            resolve({
+                status: 1,
+                type: 'text',
+                message: `75% suomalaisista on rokotettu ${almostDone.format('DD.MM.YYYY HH:mm')} \nKaikki suomalaiset on rokotettu ${finallyDone.format('DD.MM.YYYY HH:mm')}`
+            });
+        }).catch(e => {
             reject(e);
         });
     },
