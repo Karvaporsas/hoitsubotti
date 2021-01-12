@@ -323,18 +323,20 @@ module.exports = {
             console.log('Calculating vaccinations');
             console.log(vaccinationData);
 
-            const today = moment();
+            var today = moment().hours(9).minutes(0).seconds(0).milliseconds(0);
             const vaccinationStartDate = moment(VACCINATION_START_DATE);
             const hoursSinceStart = moment.duration(today.diff(vaccinationStartDate)).asHours();
             console.log(`Hours since vaccinations started is ${hoursSinceStart}`);
             const avgShotsPerHour = vaccinationData.shots / hoursSinceStart;
             console.log(`Shots per hour is ${avgShotsPerHour}`);
-            const shotsLeft = SHOTS_NEEDED - vaccinationData.shots;
-            console.log(`Shots left to adminster is ${shotsLeft}`);
-            const hoursNeeded = shotsLeft / avgShotsPerHour;
-            console.log(`${hoursNeeded} hours are still needed`);
-            var almostDone = moment().add(hoursNeeded * 0.75, 'hours');
-            var finallyDone = moment().add(hoursNeeded, 'hours');
+            const shotsLeftFull = SHOTS_NEEDED - vaccinationData.shots;
+            const shotsLeftAlmostFull = SHOTS_NEEDED * 0.75 - vaccinationData.shots;
+            console.log(`Shots left to adminster is ${shotsLeftAlmostFull} or ${shotsLeftFull}`);
+            const hoursNeededToFull = shotsLeftFull / avgShotsPerHour;
+            const hoursNeedetToAlmostFull = shotsLeftAlmostFull / avgShotsPerHour;
+            console.log(`${hoursNeedetToAlmostFull} or ${hoursNeededToFull} hours are still needed`);
+            var almostDone = moment().hours(9).minutes(0).seconds(0).milliseconds(0).add(hoursNeedetToAlmostFull, 'hours');
+            var finallyDone = moment().hours(9).minutes(0).seconds(0).milliseconds(0).add(hoursNeededToFull, 'hours');
 
             resolve({
                 status: 1,
