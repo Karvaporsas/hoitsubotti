@@ -322,26 +322,29 @@ module.exports = {
         database.getCurrentVaccinationData(VACCINATION_AREA).then((vaccinationData) => {
             console.log('Calculating vaccinations');
             console.log(vaccinationData);
-
+            const checkpoints = [0.01, 0.05, 0.5, 0.75, 1];
             var today = moment().hours(9).minutes(0).seconds(0).milliseconds(0);
             const vaccinationStartDate = moment(VACCINATION_START_DATE);
             const hoursSinceStart = moment.duration(today.diff(vaccinationStartDate)).asHours();
             console.log(`Hours since vaccinations started is ${hoursSinceStart}`);
             const avgShotsPerHour = vaccinationData.shots / hoursSinceStart;
             console.log(`Shots per hour is ${avgShotsPerHour}`);
-            const shotsLeftFull = SHOTS_NEEDED - vaccinationData.shots;
-            const shotsLeftAlmostFull = SHOTS_NEEDED * 0.75 - vaccinationData.shots;
-            console.log(`Shots left to adminster is ${shotsLeftAlmostFull} or ${shotsLeftFull}`);
-            const hoursNeededToFull = shotsLeftFull / avgShotsPerHour;
-            const hoursNeedetToAlmostFull = shotsLeftAlmostFull / avgShotsPerHour;
-            console.log(`${hoursNeedetToAlmostFull} or ${hoursNeededToFull} hours are still needed`);
-            var almostDone = moment().hours(9).minutes(0).seconds(0).milliseconds(0).add(hoursNeedetToAlmostFull, 'hours');
-            var finallyDone = moment().hours(9).minutes(0).seconds(0).milliseconds(0).add(hoursNeededToFull, 'hours');
+
+            var message = '';
+
+            for (var i = 0; i < checkpoints.length; i++) {
+                const shotsLeft = SHOTS_NEEDED * checkpoints[i] - vaccinationData.shots;
+                console.log(`Shots left to adminster ${checkpoints[i]} is ${shotsLeft}`);
+                const hoursNeeded = shotsLeft / avgShotsPerHour;
+                console.log(`${hoursNeeded} hours are still needed`);
+                const finallyDone = moment().hours(9).minutes(0).seconds(0).milliseconds(0).add(hoursNeeded, 'hours');
+                message += `${checkpoints[i] * 100}% suomalaisista on rokotettu ${finallyDone.format('DD.MM.YYYY HH:mm')}\n`;
+            }
 
             resolve({
                 status: 1,
                 type: 'text',
-                message: `75% suomalaisista on rokotettu ${almostDone.format('DD.MM.YYYY HH:mm')} \nKaikki suomalaiset on rokotettu ${finallyDone.format('DD.MM.YYYY HH:mm')}`
+                message: message
             });
         }).catch(e => {
             reject(e);
