@@ -11,7 +11,7 @@ const _botNotificationName = 'hoitsubotti';
 const DATASOURCE = process.env.DATASOURCE || 'DB';
 const VACCINATION_AREA = process.env.VACCINATION_AREA || 'Finland';
 const VACCINATION_START_DATE = process.env.VACCINATION_START_DATE || '2020-12-26';
-const SHOTS_NEEDED = 5000000 * 2;
+const SHOTS_NEEDED = parseInt(process.env.SHOTS_NEEDED || (5000000 * 2), 10);
 var m = moment();
 
 var _treshold = moment().subtract(7, 'days').format(utils.getTimeFormat());
