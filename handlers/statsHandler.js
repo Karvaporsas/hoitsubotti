@@ -12,6 +12,7 @@ const DATASOURCE = process.env.DATASOURCE || 'DB';
 const VACCINATION_AREA = process.env.VACCINATION_AREA || 'Finland';
 const VACCINATION_START_DATE = process.env.VACCINATION_START_DATE || '2020-12-26';
 const SHOTS_NEEDED = parseInt(process.env.SHOTS_NEEDED || (5000000 * 2), 10);
+const VACCINATION_TIME_WINDOW = parseInt(process.env.VACCINATION_TIME_WINDOW || 30, 10);
 var m = moment();
 
 var _treshold = moment().subtract(7, 'days').format(utils.getTimeFormat());
@@ -319,21 +320,36 @@ module.exports = {
      * @param {function} reject executed when caller function receives an error
      */
     getVaccinations(args, resolve, reject) {
-        database.getCurrentVaccinationData(VACCINATION_AREA).then((vaccinationData) => {
+        var promises = [];
+        promises.push(database.getCurrentVaccinationData(VACCINATION_AREA));
+        promises.push(database.getVaccinationDataDaysAgo(VACCINATION_AREA, VACCINATION_TIME_WINDOW));
+
+        Promise.all(promises).then((allPromises) => {
+            var vaccinationData = allPromises[0];
+            var vaccinationTimeWindowStartData = allPromises[1];
+            var shots = vaccinationData.shots;
+            var shotsOnPeriod = vaccinationData.shots;
             console.log('Calculating vaccinations');
             console.log(vaccinationData);
             const checkpoints = [0.01, 0.05, 0.5, 0.75, 1];
             var today = moment().hours(9).minutes(0).seconds(0).milliseconds(0);
-            const vaccinationStartDate = moment(VACCINATION_START_DATE);
+            var vaccinationStartDate = moment(VACCINATION_START_DATE);
+            if (vaccinationTimeWindowStartData != null && VACCINATION_START_DATE < vaccinationTimeWindowStartData.dateSortString) {
+                console.log('Using limited time window');
+                vaccinationStartDate = moment(vaccinationTimeWindowStartData.dateSortString).add(-1, "day");
+                shotsOnPeriod = vaccinationData.shots - vaccinationTimeWindowStartData.shots;
+            }
+            console.log(`Start date is ${vaccinationStartDate.format('DD.MM.YYYY')}`);
+            console.log(`Shots on period are ${shotsOnPeriod}`);
             const hoursSinceStart = moment.duration(today.diff(vaccinationStartDate)).asHours();
             console.log(`Hours since vaccinations started is ${hoursSinceStart}`);
-            const avgShotsPerHour = vaccinationData.shots / hoursSinceStart;
+            const avgShotsPerHour = shotsOnPeriod / hoursSinceStart;
             console.log(`Shots per hour is ${avgShotsPerHour}`);
 
             var message = '';
 
             for (var i = 0; i < checkpoints.length; i++) {
-                const shotsLeft = SHOTS_NEEDED * checkpoints[i] - vaccinationData.shots;
+                const shotsLeft = SHOTS_NEEDED * checkpoints[i] - shots;
                 console.log(`Shots left to adminster ${checkpoints[i]} is ${shotsLeft}`);
                 const hoursNeeded = shotsLeft / avgShotsPerHour;
                 console.log(`${hoursNeeded} hours are still needed`);

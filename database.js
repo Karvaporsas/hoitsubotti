@@ -25,6 +25,23 @@ function _getCurrentVaccinationData(data) {
     return vaccination;
 }
 
+function _getOldestVaccinationData(data) {
+    if (!data) return null;
+
+    var oldest = '';
+
+    var vaccination = null;
+
+    for (const v of data) {
+        if (oldest > v.dateSortString || !oldest) {
+            oldest = v.dateSortString;
+            vaccination = v;
+        }
+    }
+
+    return vaccination;
+}
+
 /**
  * Routes database calls to proper handlers and initializes db.
  */
@@ -71,6 +88,19 @@ module.exports = {
                     });
                 });
             }
+        });
+    },
+    getVaccinationDataDaysAgo(area, daysAgo) {
+        return caseFunctions.getVaccinationData(dynamoDb, area, daysAgo).then(data => {
+            var vaccination = _getOldestVaccinationData(data);
+
+            return new Promise((resolve, reject) => {
+                if (vaccination) {
+                    resolve(vaccination);
+                } else {
+                    reject();
+                }
+            });
         });
     },
     getDeadCases() {
