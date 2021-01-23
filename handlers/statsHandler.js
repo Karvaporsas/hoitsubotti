@@ -347,9 +347,16 @@ module.exports = {
             console.log(`Shots per hour is ${avgShotsPerHour}`);
 
             var message = '';
+            var nextFullPercentage = Math.ceil(shots / SHOTS_NEEDED * 100) / 100;
+            console.log(`Next full percentage is ${nextFullPercentage}`);
+            if (checkpoints.indexOf(nextFullPercentage) < 0) checkpoints.unshift(nextFullPercentage);
+
+            console.log(`Checkpoints are`);
+            console.log(checkpoints);
 
             for (var i = 0; i < checkpoints.length; i++) {
                 const shotsLeft = SHOTS_NEEDED * checkpoints[i] - shots;
+                if (shotsLeft < 0) continue;
                 console.log(`Shots left to adminster ${checkpoints[i]} is ${shotsLeft}`);
                 const hoursNeeded = shotsLeft / avgShotsPerHour;
                 console.log(`${hoursNeeded} hours are still needed`);
